@@ -3,4 +3,5 @@ numpy
 pandas
 matplotlib
 seaborn
-embedchain
+requests
+beautifulsoup4
