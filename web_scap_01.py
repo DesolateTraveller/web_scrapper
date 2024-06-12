@@ -18,7 +18,7 @@ def scrape_webpage(url):
 
         # Extract the title and a snippet of text (as an example)
         title = soup.title.string if soup.title else "No title found"
-        snippet = ' '.join(soup.get_text().split()[:100])  # Get the first 100 words of text
+        snippet = ' '.join(soup.get_text().split()[:])  # Get the first 100 words of text
 
         return title, snippet
     except requests.exceptions.RequestException as e:
