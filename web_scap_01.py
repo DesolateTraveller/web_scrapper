@@ -71,7 +71,7 @@ if url:
                     st.subheader("Page Title",divider='blue')
                     st.write(title)
 
-                with col1:
+                with col2:
                   
                     st.subheader("Page Content",divider='blue')
                     st.write(snippet)
