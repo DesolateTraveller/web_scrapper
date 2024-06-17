@@ -34,7 +34,6 @@ st.divider()
 
 def scrape_webpage(url):
     try:
-        # Fetch the content of the URL
         response = requests.get(url)
         response.raise_for_status()  # Raise an exception for HTTP errors
 
