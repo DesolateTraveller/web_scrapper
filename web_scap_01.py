@@ -59,6 +59,7 @@ url = st.text_input("**:blue[Enter the URL of the webpage you want to scrape:]**
 if url:
     if st.button("**:blue[Scrape Webpage]**"):
         st.divider()
+        st.divider()
         with st.spinner("Scraping the webpage..."):
             title, snippet = scrape_webpage(url)
             if title and snippet:
