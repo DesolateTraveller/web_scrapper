@@ -43,7 +43,7 @@ def scrape_webpage(url):
 
         # Extract the title and a snippet of text (as an example)
         title = soup.title.string if soup.title else "No title found"
-        snippet = ' '.join(soup.get_text().split()[:])  # Get the first 100 words of text
+        snippet = ' '.join(soup.get_text().split()[:])  
 
         return title, snippet
     except requests.exceptions.RequestException as e:
@@ -57,14 +57,23 @@ def scrape_webpage(url):
 # Input field for the URL
 url = st.text_input("**:blue[Enter the URL of the webpage you want to scrape:]**")
 if url:
-    if st.button("Scrape Webpage"):
+    if st.button("**:blue[Scrape Webpage]**"):
+        st.divider()
         with st.spinner("Scraping the webpage..."):
             title, snippet = scrape_webpage(url)
             if title and snippet:
                 st.success("Webpage scraped successfully!")
-                st.subheader("Page Title")
-                st.write(title)
-                st.subheader("Page Content Snippet")
-                st.write(snippet)
+              
+                col1, col2 = st.columns((0.2,0.8))
+
+                with col1:
+                  
+                    st.subheader("Page Title",divider='blue')
+                    st.write(title)
+
+                with col1:
+                  
+                    st.subheader("Page Content",divider='blue')
+                    st.write(snippet)
             else:
                 st.error("Failed to scrape the webpage.")
