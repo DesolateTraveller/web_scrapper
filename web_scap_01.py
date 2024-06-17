@@ -32,13 +32,6 @@ st.divider()
 ### Functions & Definitions
 #---------------------------------------------------------------------------------------------------------------------------------
 
-#---------------------------------------------------------------------------------------------------------------------------------
-### Main app
-#---------------------------------------------------------------------------------------------------------------------------------
-
-# Input field for the URL
-url = st.text_input("Enter the URL of the webpage you want to scrape:")
-
 def scrape_webpage(url):
     try:
         # Fetch the content of the URL
@@ -56,6 +49,14 @@ def scrape_webpage(url):
     except requests.exceptions.RequestException as e:
         st.error(f"Error fetching the URL: {e}")
         return None, None
+
+#---------------------------------------------------------------------------------------------------------------------------------
+### Main app
+#---------------------------------------------------------------------------------------------------------------------------------
+
+# Input field for the URL
+url = st.text_input("Enter the URL of the webpage you want to scrape:")
+
 
 if url:
     if st.button("Scrape Webpage"):
