@@ -34,7 +34,6 @@ st.divider()
 ### Functions & Definitions
 #---------------------------------------------------------------------------------------------------------------------------------
 
-@st.cache_data(ttl="2h")
 def scrape_webpage(url):
     try:
         response = requests.get(url)
@@ -47,7 +46,6 @@ def scrape_webpage(url):
         st.error(f"Error fetching the URL: {e}")
         return None, None
 
-@st.cache_data(ttl="2h")
 def fetch_webpage(url):
     try:
         response = requests.get(url)
@@ -57,18 +55,15 @@ def fetch_webpage(url):
         print(f"Error fetching the webpage: {e}")
         return None
 
-@st.cache_data(ttl="2h")
 def parse_html(html_content):
     soup = BeautifulSoup(html_content, 'html.parser')
     return soup
 
-@st.cache_data(ttl="2h")
 def extract_text(soup):
     paragraphs = soup.find_all('p')
     text = ' '.join([p.get_text() for p in paragraphs])
     return text
 
-@st.cache_data(ttl="2h")
 def summarize_text(text):
     summarizer = pipeline("summarization", model="facebook/bart-large-cnn")
     # Summarize the text
