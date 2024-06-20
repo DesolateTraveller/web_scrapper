@@ -5,3 +5,5 @@ matplotlib
 seaborn
 requests
 beautifulsoup4
+transformers 
+torch
