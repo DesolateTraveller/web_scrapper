@@ -124,7 +124,7 @@ if st.button("**:blue[Scrape Webpage]**"):
 
                     with st.popover(f"**:blue[Page Content]**"):
                         st.write(snippet)
-                    
+                    st.divider()
                     #st.write(summary)
 
     else:
