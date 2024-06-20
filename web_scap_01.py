@@ -76,32 +76,34 @@ def summarize_text(text):
 
 # Input field for the URL
 url = st.text_input("**:blue[Enter the URL of the webpage you want to scrape:]**")
-if url:
-    if st.button("**:blue[Scrape Webpage]**"):
-        st.divider()
-        with st.spinner("Scraping the webpage..."):
-            html_content = fetch_webpage(url)
-            title, snippet = scrape_webpage(url)
-            if title and snippet:
-                st.success("Webpage scraped successfully!")
+if st.button("**:blue[Scrape Webpage]**"):
+    
+    st.divider()
+    html_content = fetch_webpage(url)
+    title, snippet = scrape_webpage(url)
+            
+    if title and snippet:
+        st.success("Webpage scraped successfully!")
               
-                col1, col2 = st.columns((0.2,0.8))
+        col1, col2 = st.columns((0.2,0.8))
 
-                with col1:
+        with col1:
                   
-                    st.subheader("Page Title",divider='blue')
-                    st.write(title)
+            st.subheader("Page Title",divider='blue')
+            st.write(title)
 
-                with col2:
+            with col2:
                   
-                    st.subheader("Page Content & Summary",divider='blue')
+                st.subheader("Page Content & Summary",divider='blue')
+                with st.spinner("Scraping the webpage..."):
                     soup = parse_html(html_content)
                     text = extract_text(soup)
                     summary = summarize_text(text)
 
-                    with st.popover(f"**:blue[Snippet]**"):
+                    with st.popover(f"**:blue[Page Content]**"):
                         st.write(snippet)
                     
                     st.write(summary)
-            else:
-                st.error("Failed to scrape the webpage.")
+
+    else:
+        st.error("Failed to scrape the webpage.")
