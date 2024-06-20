@@ -120,12 +120,12 @@ if st.button("**:blue[Scrape Webpage]**"):
                 with st.spinner("Scraping the webpage..."):
                     soup = parse_html(html_content)
                     text = extract_text(soup)
-                    summary = summarize_text(text)
+                    #summary = summarize_text(text)
 
                     with st.popover(f"**:blue[Page Content]**"):
                         st.write(snippet)
                     
-                    st.write(summary)
+                    #st.write(summary)
 
     else:
         st.error("Failed to scrape the webpage.")
