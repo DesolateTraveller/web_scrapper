@@ -76,7 +76,10 @@ def summarize_text(text, max_length=150, min_length=50):
     tokenizer = T5Tokenizer.from_pretrained(model_name)
     model = T5ForConditionalGeneration.from_pretrained(model_name)
     preprocessed_text = "summarize: " + text.strip().replace("\n", " ")
-    inputs = tokenizer.encode(preprocessed_text, return_tensors="pt", max_length=512, truncation=True)
+    inputs = tokenizer.encode(preprocessed_text, 
+                              return_tensors="pt", 
+                              max_length=512, 
+                              truncation=True)
     summary_ids = model.generate(
         inputs, 
         max_length=max_length, 
@@ -85,6 +88,8 @@ def summarize_text(text, max_length=150, min_length=50):
         num_beams=4, 
         early_stopping=True
     )
+
+    # Decode the summary
     summary = tokenizer.decode(summary_ids[0], skip_special_tokens=True)
     return summary
 #---------------------------------------------------------------------------------------------------------------------------------
