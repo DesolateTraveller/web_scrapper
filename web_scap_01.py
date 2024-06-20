@@ -71,7 +71,7 @@ def extract_text(soup):
     #return summary[0]['summary_text']
 
 
-def summarize_text(text, max_length=150, min_length=50):
+def summarize_text(text):
     model_name = "t5-large"
     tokenizer = T5Tokenizer.from_pretrained(model_name)
     model = T5ForConditionalGeneration.from_pretrained(model_name)
@@ -82,8 +82,8 @@ def summarize_text(text, max_length=150, min_length=50):
                               truncation=True)
     summary_ids = model.generate(
         inputs, 
-        max_length=max_length, 
-        min_length=min_length, 
+        max_length=150, 
+        min_length=50, 
         length_penalty=2.0, 
         num_beams=4, 
         early_stopping=True
