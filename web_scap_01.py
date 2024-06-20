@@ -83,7 +83,7 @@ if st.button("**:blue[Scrape Webpage]**"):
     title, snippet = scrape_webpage(url)
             
     if title and snippet:
-        st.success("Webpage scraped successfully!")
+        st.success("Webpage fetched successfully!")
               
         col1, col2 = st.columns((0.2,0.8))
 
