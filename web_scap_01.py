@@ -12,6 +12,8 @@ import matplotlib.pyplot as plt
 #----------------------------------------
 import requests
 from bs4 import BeautifulSoup
+from transformers import pipeline
+
 #---------------------------------------------------------------------------------------------------------------------------------
 ### Title and description for your Streamlit app
 #---------------------------------------------------------------------------------------------------------------------------------
@@ -32,22 +34,46 @@ st.divider()
 ### Functions & Definitions
 #---------------------------------------------------------------------------------------------------------------------------------
 
+@st.cache_data(ttl="2h")
 def scrape_webpage(url):
     try:
         response = requests.get(url)
-        response.raise_for_status()  # Raise an exception for HTTP errors
-
-        # Parse the content with BeautifulSoup
+        response.raise_for_status() 
         soup = BeautifulSoup(response.text, 'html.parser')
-
-        # Extract the title and a snippet of text (as an example)
         title = soup.title.string if soup.title else "No title found"
         snippet = ' '.join(soup.get_text().split()[:])  
-
         return title, snippet
     except requests.exceptions.RequestException as e:
         st.error(f"Error fetching the URL: {e}")
         return None, None
+
+@st.cache_data(ttl="2h")
+def fetch_webpage(url):
+    try:
+        response = requests.get(url)
+        response.raise_for_status()  
+        return response.text
+    except requests.RequestException as e:
+        print(f"Error fetching the webpage: {e}")
+        return None
+
+@st.cache_data(ttl="2h")
+def parse_html(html_content):
+    soup = BeautifulSoup(html_content, 'html.parser')
+    return soup
+
+@st.cache_data(ttl="2h")
+def extract_text(soup):
+    paragraphs = soup.find_all('p')
+    text = ' '.join([p.get_text() for p in paragraphs])
+    return text
+
+@st.cache_data(ttl="2h")
+def summarize_text(text):
+    summarizer = pipeline("summarization", model="facebook/bart-large-cnn")
+    # Summarize the text
+    summary = summarizer(text, max_length=150, min_length=50, do_sample=False)
+    return summary[0]['summary_text']
 
 #---------------------------------------------------------------------------------------------------------------------------------
 ### Main app
@@ -59,6 +85,7 @@ if url:
     if st.button("**:blue[Scrape Webpage]**"):
         st.divider()
         with st.spinner("Scraping the webpage..."):
+            html_content = fetch_webpage(url)
             title, snippet = scrape_webpage(url)
             if title and snippet:
                 st.success("Webpage scraped successfully!")
@@ -72,7 +99,14 @@ if url:
 
                 with col2:
                   
-                    st.subheader("Page Content",divider='blue')
-                    st.write(snippet)
+                    st.subheader("Page Content & Summary",divider='blue')
+                    soup = parse_html(html_content)
+                    text = extract_text(soup)
+                    summary = summarize_text(text)
+
+                    with st.popover(f"**:blue[Snippet]**"):
+                        st.write(snippet)
+                    
+                    st.write(summary)
             else:
                 st.error("Failed to scrape the webpage.")
