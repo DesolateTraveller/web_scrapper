@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 #----------------------------------------
 import requests
 from bs4 import BeautifulSoup
-from transformers import pipeline
+from transformers import T5ForConditionalGeneration, T5Tokenizer
 
 #---------------------------------------------------------------------------------------------------------------------------------
 ### Title and description for your Streamlit app
@@ -64,12 +64,29 @@ def extract_text(soup):
     text = ' '.join([p.get_text() for p in paragraphs])
     return text
 
-def summarize_text(text):
-    summarizer = pipeline("summarization", model="facebook/bart-large-cnn")
-    # Summarize the text
-    summary = summarizer(text, max_length=150, min_length=50, do_sample=False)
-    return summary[0]['summary_text']
+#def summarize_text(text):
+    #summarizer = pipeline("summarization", model="facebook/bart-large-cnn")
+    ## Summarize the text
+    #summary = summarizer(text, max_length=150, min_length=50, do_sample=False)
+    #return summary[0]['summary_text']
 
+
+def summarize_text(text, max_length=150, min_length=50):
+    model_name = "t5-large"
+    tokenizer = T5Tokenizer.from_pretrained(model_name)
+    model = T5ForConditionalGeneration.from_pretrained(model_name)
+    preprocessed_text = "summarize: " + text.strip().replace("\n", " ")
+    inputs = tokenizer.encode(preprocessed_text, return_tensors="pt", max_length=512, truncation=True)
+    summary_ids = model.generate(
+        inputs, 
+        max_length=max_length, 
+        min_length=min_length, 
+        length_penalty=2.0, 
+        num_beams=4, 
+        early_stopping=True
+    )
+    summary = tokenizer.decode(summary_ids[0], skip_special_tokens=True)
+    return summary
 #---------------------------------------------------------------------------------------------------------------------------------
 ### Main app
 #---------------------------------------------------------------------------------------------------------------------------------
