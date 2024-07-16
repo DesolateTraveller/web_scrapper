@@ -29,17 +29,17 @@ if file:
     df = load_file(file)
     st.sidebar.divider()
 
-# Streamlit app title
-st.title('Anomaly Detection in Time Series Data')
+    # Streamlit app title
+    st.title('Anomaly Detection in Time Series Data')
 
-# Display the raw data
-st.subheader('Raw Data')
-st.write(df)
+    # Display the raw data
+    st.subheader('Raw Data')
+    st.write(df)
 
-# Display the plot of the time series
-st.subheader('Time Series Plot')
-fig = px.line(df, x=df.index, y='Value', title='Time Series Data')
-st.plotly_chart(fig)
+    # Display the plot of the time series
+    st.subheader('Time Series Plot')
+    fig = px.line(df, x=df.index, y='Value', title='Time Series Data')
+    st.plotly_chart(fig)
 
 # Isolation Forest
 st.subheader('Isolation Forest')
