@@ -9,14 +9,25 @@ from sklearn.cluster import DBSCAN
 from scipy.stats import zscore
 
 # Load the dataset
-@st.cache
-def load_data():
-    df = pd.read_csv('your_time_series_data.csv')  # Replace with your data file
-    df['Date'] = pd.to_datetime(df['Date'])
-    df.set_index('Date', inplace=True)
-    return df
+@st.cache_data(ttl="2h")
+def load_file(file):
+    file_extension = file.name.split('.')[-1]
+    if file_extension == 'csv':
+        df = pd.read_csv(file, sep=None, engine='python', encoding='utf-8', parse_dates=True, infer_datetime_format=True)
+    elif file_extension in ['xls', 'xlsx']:
+        df = pd.read_excel(file)
+    else:
+        st.error("Unsupported file format")
+        df = pd.DataFrame()
 
-df = load_data()
+
+file = st.sidebar.file_uploader("**:blue[Choose a file]**",
+                                    type=["csv", "xls", "xlsx"], 
+                                    accept_multiple_files=False, 
+                                    key="file_upload")
+if file:
+    df = load_file(file)
+    st.sidebar.divider()
 
 # Streamlit app title
 st.title('Anomaly Detection in Time Series Data')
