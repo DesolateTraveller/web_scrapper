@@ -10,3 +10,4 @@ torch
 sentencepiece
 scipy
 scikit-learn
+plotly
