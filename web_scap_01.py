@@ -1,77 +1,132 @@
+#---------------------------------------------------------------------------------------------------------------------------------
+### Authenticator
+#---------------------------------------------------------------------------------------------------------------------------------
 import streamlit as st
-import pandas as pd
+#---------------------------------------------------------------------------------------------------------------------------------
+### Import Libraries
+#---------------------------------------------------------------------------------------------------------------------------------
 import numpy as np
-import plotly.express as px
-from sklearn.ensemble import IsolationForest
-from sklearn.preprocessing import StandardScaler
-from sklearn.neighbors import LocalOutlierFactor
-from sklearn.cluster import DBSCAN
-from scipy.stats import zscore
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+#----------------------------------------
+import requests
+from bs4 import BeautifulSoup
+from transformers import T5ForConditionalGeneration, T5Tokenizer
 
-# Function to load data
-@st.cache_data
-def load_data(uploaded_file):
-    df = pd.read_csv(uploaded_file)
-    return df
+#---------------------------------------------------------------------------------------------------------------------------------
+### Title and description for your Streamlit app
+#---------------------------------------------------------------------------------------------------------------------------------
+#import custom_style()
+st.set_page_config(page_title="Web Scrapper | v0.2",
+                   layout="wide",
+                   #page_icon=               
+                   initial_sidebar_state="collapsed")
+#----------------------------------------
+st.title(f""":rainbow[Web Scrapper | v0.2]""")
+st.markdown('Created by | <a href="mailto:avijit.mba18@gmail.com">Avijit Chakraborty</a>', 
+            unsafe_allow_html=True)
+st.info('**Disclaimer : :blue[Thank you for visiting the app] | Unauthorized uses or copying of the app is strictly prohibited | Click the :blue[sidebar] to follow the instructions to start the applications.**', icon="ℹ️")
+#----------------------------------------
+# Set the background image
+st.divider()
+#---------------------------------------------------------------------------------------------------------------------------------
+### Functions & Definitions
+#---------------------------------------------------------------------------------------------------------------------------------
 
-# Streamlit app title
-st.title('Anomaly Detection in Time Series Data')
+def scrape_webpage(url):
+    try:
+        response = requests.get(url)
+        response.raise_for_status() 
+        soup = BeautifulSoup(response.text, 'html.parser')
+        title = soup.title.string if soup.title else "No title found"
+        snippet = ' '.join(soup.get_text().split()[:])  
+        return title, snippet
+    except requests.exceptions.RequestException as e:
+        st.error(f"Error fetching the URL: {e}")
+        return None, None
 
-# Sidebar for user inputs
-st.sidebar.header('User Inputs')
-uploaded_file = st.sidebar.file_uploader("Upload your CSV file", type=['csv'])
+def fetch_webpage(url):
+    try:
+        response = requests.get(url)
+        response.raise_for_status()  
+        return response.text
+    except requests.RequestException as e:
+        print(f"Error fetching the webpage: {e}")
+        return None
 
-contamination = st.sidebar.slider('Contamination', 0.01, 0.1, 0.05, key='contamination')
-eps = st.sidebar.slider('DBSCAN eps', 0.1, 1.0, 0.5, key='eps')
-min_samples = st.sidebar.slider('DBSCAN min_samples', 1, 20, 5, key='min_samples')
-n_neighbors = st.sidebar.slider('LOF n_neighbors', 1, 50, 20, key='n_neighbors')
+def parse_html(html_content):
+    soup = BeautifulSoup(html_content, 'html.parser')
+    return soup
 
-if uploaded_file is not None:
-    df = load_data(uploaded_file)
-    target_variable = st.sidebar.multiselect("**Target (Dependent) Variable**", df.columns, default='value')
+def extract_text(soup):
+    paragraphs = soup.find_all('p')
+    text = ' '.join([p.get_text() for p in paragraphs])
+    return text
 
-    # Display the raw data
-    st.subheader('Raw Data')
-    st.write(df)
-
-
-    # Function to plot anomalies
-    def plot_anomalies(df, color_column, title):
-        fig = px.scatter(df, x=df.index, y='Value', color=color_column, title=title, template="plotly_dark")
-        anomalies = df[df[color_column] == -1]
-        fig.add_scatter(x=anomalies.index, y=anomalies['Value'], mode='markers', name='Anomalies', marker=dict(color='red', size=10))
-        st.plotly_chart(fig)
-
-    # Isolation Forest
-    st.subheader('Isolation Forest')
-    if st.checkbox('Detect Anomalies using Isolation Forest'):
-        isolation_forest = IsolationForest(contamination=contamination)
-        df['anomaly_if'] = isolation_forest.fit_predict(df[['Value']])
-        plot_anomalies(df, 'anomaly_if', 'Isolation Forest Anomalies')
-
-    # Z-Score
-    st.subheader('Z-Score')
-    if st.checkbox('Detect Anomalies using Z-Score'):
-        df['z_score'] = zscore(df['Value'])
-        df['anomaly_z'] = df['z_score'].apply(lambda x: 1 if np.abs(x) > 3 else 0)
-        plot_anomalies(df, 'anomaly_z', 'Z-Score Anomalies')
-
-    # DBSCAN
-    st.subheader('DBSCAN')
-    if st.checkbox('Detect Anomalies using DBSCAN'):
-        scaler = StandardScaler()
-        df_scaled = scaler.fit_transform(df[['Value']])
-        dbscan = DBSCAN(eps=eps, min_samples=min_samples)
-        df['anomaly_db'] = dbscan.fit_predict(df_scaled)
-        plot_anomalies(df, 'anomaly_db', 'DBSCAN Anomalies')
-
-    # Local Outlier Factor (LOF)
-    st.subheader('Local Outlier Factor (LOF)')
-    if st.checkbox('Detect Anomalies using LOF'):
-        lof = LocalOutlierFactor(n_neighbors=n_neighbors, contamination=contamination)
-        df['anomaly_lof'] = lof.fit_predict(df[['Value']])
-        plot_anomalies(df, 'anomaly_lof', 'LOF Anomalies')
+#def summarize_text(text):
+    #summarizer = pipeline("summarization", model="facebook/bart-large-cnn")
+    ## Summarize the text
+    #summary = summarizer(text, max_length=150, min_length=50, do_sample=False)
+    #return summary[0]['summary_text']
 
 
-else:
-    st.info('Please upload a CSV file to proceed.')
+def summarize_text(text):
+    model_name = "t5-large"
+    tokenizer = T5Tokenizer.from_pretrained(model_name)
+    model = T5ForConditionalGeneration.from_pretrained(model_name)
+    preprocessed_text = "summarize: " + text.strip().replace("\n", " ")
+    inputs = tokenizer.encode(preprocessed_text, 
+                              return_tensors="pt", 
+                              max_length=512, 
+                              truncation=True)
+    summary_ids = model.generate(
+        inputs, 
+        max_length=150, 
+        min_length=50, 
+        length_penalty=2.0, 
+        num_beams=4, 
+        early_stopping=True
+    )
+
+    # Decode the summary
+    summary = tokenizer.decode(summary_ids[0], skip_special_tokens=True)
+    return summary
+#---------------------------------------------------------------------------------------------------------------------------------
+### Main app
+#---------------------------------------------------------------------------------------------------------------------------------
+
+# Input field for the URL
+url = st.text_input("**:blue[Enter the URL of the webpage you want to scrape:]**")
+if st.button("**:blue[Scrape Webpage]**"):
+    
+    st.divider()
+    html_content = fetch_webpage(url)
+    title, snippet = scrape_webpage(url)
+            
+    if title and snippet:
+        st.success("Webpage fetched successfully!")
+              
+        col1, col2 = st.columns((0.2,0.8))
+
+        with col1:
+                  
+            st.subheader("Page Title",divider='blue')
+            st.write(title)
+
+            with col2:
+                  
+                st.subheader("Page Content & Summary",divider='blue')
+                with st.spinner("Scraping the webpage..."):
+                    soup = parse_html(html_content)
+                    text = extract_text(soup)
+                    summary = summarize_text(text)
+
+                    with st.popover(f"**:blue[Page Content]**"):
+                        st.write(snippet)
+                    
+                    st.divider()
+                    st.write(summary)
+
+    else:
+        st.error("Failed to scrape the webpage.")
