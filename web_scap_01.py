@@ -8,29 +8,27 @@ from sklearn.neighbors import LocalOutlierFactor
 from sklearn.cluster import DBSCAN
 from scipy.stats import zscore
 
-# Load the dataset
-@st.cache_data(ttl="2h")
-def load_file(file):
-    file_extension = file.name.split('.')[-1]
-    if file_extension == 'csv':
-        df = pd.read_csv(file, sep=None, engine='python', encoding='utf-8', parse_dates=True, infer_datetime_format=True)
-    elif file_extension in ['xls', 'xlsx']:
-        df = pd.read_excel(file)
-    else:
-        st.error("Unsupported file format")
-        df = pd.DataFrame()
+# Function to load data
+@st.cache_data
+def load_data(uploaded_file):
+    df = pd.read_csv(uploaded_file)
+    df['Date'] = pd.to_datetime(df['Date'])
+    df.set_index('Date', inplace=True)
+    return df
 
+# Streamlit app title
+st.title('Anomaly Detection in Time Series Data')
 
-file = st.sidebar.file_uploader("**:blue[Choose a file]**",
-                                    type=["csv", "xls", "xlsx"], 
-                                    accept_multiple_files=False, 
-                                    key="file_upload")
-if file:
-    df = load_file(file)
-    st.sidebar.divider()
+# Sidebar for user inputs
+st.sidebar.header('User Inputs')
+uploaded_file = st.sidebar.file_uploader("Upload your CSV file", type=['csv'])
+contamination = st.sidebar.slider('Contamination', 0.01, 0.1, 0.05, key='contamination')
+eps = st.sidebar.slider('DBSCAN eps', 0.1, 1.0, 0.5, key='eps')
+min_samples = st.sidebar.slider('DBSCAN min_samples', 1, 20, 5, key='min_samples')
+n_neighbors = st.sidebar.slider('LOF n_neighbors', 1, 50, 20, key='n_neighbors')
 
-    # Streamlit app title
-    st.title('Anomaly Detection in Time Series Data')
+if uploaded_file is not None:
+    df = load_data(uploaded_file)
 
     # Display the raw data
     st.subheader('Raw Data')
@@ -38,65 +36,74 @@ if file:
 
     # Display the plot of the time series
     st.subheader('Time Series Plot')
-    fig = px.line(df, x=df.index, y='Value', title='Time Series Data')
+    fig = px.line(df, x=df.index, y='Value', title='Time Series Data', template="plotly_dark")
     st.plotly_chart(fig)
 
-# Isolation Forest
-st.subheader('Isolation Forest')
-if st.checkbox('Detect Anomalies using Isolation Forest'):
-    isolation_forest = IsolationForest(contamination=0.01)
-    df['anomaly_if'] = isolation_forest.fit_predict(df[['Value']])
-    anomalies_if = df[df['anomaly_if'] == -1]
-    fig_if = px.scatter(df, x=df.index, y='Value', color='anomaly_if', title='Isolation Forest Anomalies')
-    fig_if.add_scatter(x=anomalies_if.index, y=anomalies_if['Value'], mode='markers', name='Anomalies', marker=dict(color='red'))
-    st.plotly_chart(fig_if)
+    # Function to plot anomalies
+    def plot_anomalies(df, color_column, title):
+        fig = px.scatter(df, x=df.index, y='Value', color=color_column, title=title, template="plotly_dark")
+        anomalies = df[df[color_column] == -1]
+        fig.add_scatter(x=anomalies.index, y=anomalies['Value'], mode='markers', name='Anomalies', marker=dict(color='red', size=10))
+        st.plotly_chart(fig)
 
-# Z-Score
-st.subheader('Z-Score')
-if st.checkbox('Detect Anomalies using Z-Score'):
-    df['z_score'] = zscore(df['Value'])
-    df['anomaly_z'] = df['z_score'].apply(lambda x: 1 if np.abs(x) > 3 else 0)
-    anomalies_z = df[df['anomaly_z'] == 1]
-    fig_z = px.scatter(df, x=df.index, y='Value', color='anomaly_z', title='Z-Score Anomalies')
-    fig_z.add_scatter(x=anomalies_z.index, y=anomalies_z['Value'], mode='markers', name='Anomalies', marker=dict(color='red'))
-    st.plotly_chart(fig_z)
+    # Isolation Forest
+    st.subheader('Isolation Forest')
+    if st.checkbox('Detect Anomalies using Isolation Forest'):
+        isolation_forest = IsolationForest(contamination=contamination)
+        df['anomaly_if'] = isolation_forest.fit_predict(df[['Value']])
+        plot_anomalies(df, 'anomaly_if', 'Isolation Forest Anomalies')
 
-# DBSCAN
-st.subheader('DBSCAN')
-if st.checkbox('Detect Anomalies using DBSCAN'):
-    scaler = StandardScaler()
-    df_scaled = scaler.fit_transform(df[['Value']])
-    dbscan = DBSCAN(eps=0.5, min_samples=5)
-    df['anomaly_db'] = dbscan.fit_predict(df_scaled)
-    anomalies_db = df[df['anomaly_db'] == -1]
-    fig_db = px.scatter(df, x=df.index, y='Value', color='anomaly_db', title='DBSCAN Anomalies')
-    fig_db.add_scatter(x=anomalies_db.index, y=anomalies_db['Value'], mode='markers', name='Anomalies', marker=dict(color='red'))
-    st.plotly_chart(fig_db)
+    # Z-Score
+    st.subheader('Z-Score')
+    if st.checkbox('Detect Anomalies using Z-Score'):
+        df['z_score'] = zscore(df['Value'])
+        df['anomaly_z'] = df['z_score'].apply(lambda x: 1 if np.abs(x) > 3 else 0)
+        plot_anomalies(df, 'anomaly_z', 'Z-Score Anomalies')
 
-# Local Outlier Factor (LOF)
-st.subheader('Local Outlier Factor (LOF)')
-if st.checkbox('Detect Anomalies using LOF'):
-    lof = LocalOutlierFactor(n_neighbors=20, contamination=0.01)
-    df['anomaly_lof'] = lof.fit_predict(df[['Value']])
-    anomalies_lof = df[df['anomaly_lof'] == -1]
-    fig_lof = px.scatter(df, x=df.index, y='Value', color='anomaly_lof', title='LOF Anomalies')
-    fig_lof.add_scatter(x=anomalies_lof.index, y=anomalies_lof['Value'], mode='markers', name='Anomalies', marker=dict(color='red'))
-    st.plotly_chart(fig_lof)
+    # DBSCAN
+    st.subheader('DBSCAN')
+    if st.checkbox('Detect Anomalies using DBSCAN'):
+        scaler = StandardScaler()
+        df_scaled = scaler.fit_transform(df[['Value']])
+        dbscan = DBSCAN(eps=eps, min_samples=min_samples)
+        df['anomaly_db'] = dbscan.fit_predict(df_scaled)
+        plot_anomalies(df, 'anomaly_db', 'DBSCAN Anomalies')
 
-# Sidebar for user inputs
-st.sidebar.header('User Inputs')
-contamination = st.sidebar.slider('Contamination', 0.01, 0.1, 0.01)
-eps = st.sidebar.slider('DBSCAN eps', 0.1, 1.0, 0.5)
-min_samples = st.sidebar.slider('DBSCAN min_samples', 1, 20, 5)
-n_neighbors = st.sidebar.slider('LOF n_neighbors', 1, 50, 20)
+    # Local Outlier Factor (LOF)
+    st.subheader('Local Outlier Factor (LOF)')
+    if st.checkbox('Detect Anomalies using LOF'):
+        lof = LocalOutlierFactor(n_neighbors=n_neighbors, contamination=contamination)
+        df['anomaly_lof'] = lof.fit_predict(df[['Value']])
+        plot_anomalies(df, 'anomaly_lof', 'LOF Anomalies')
 
-# Update the models with user inputs
-if contamination:
-    isolation_forest.set_params(contamination=contamination)
-    lof.set_params(contamination=contamination)
-
-if eps and min_samples:
-    dbscan.set_params(eps=eps, min_samples=min_samples)
-
-if n_neighbors:
-    lof.set_params(n_neighbors=n_neighbors)
+    # Information box
+    st.markdown("""
+    <style>
+    .info-box {
+        padding: 15px;
+        background-color: #f9f9f9;
+        border-left: 5px solid #007BFF;
+        border-radius: 5px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+    .info-box h4 {
+        color: #007BFF;
+        font-weight: bold;
+        margin-bottom: 10px;
+    }
+    .info-box p {
+        color: #333;
+    }
+    </style>
+    <div class="info-box">
+        <h4>Metrics Definitions</h4>
+        <p><strong>MSE</strong>: Mean Squared Error</p>
+        <p><strong>RMSE</strong>: Root Mean Squared Error</p>
+        <p><strong>MAE</strong>: Mean Absolute Error</p>
+        <p><strong>MAPE</strong>: Mean Absolute Percentage Error</p>
+        <p><strong>MDAPE</strong>: Median Absolute Percentage Error</p>
+        <p><strong>SMAPE</strong>: Symmetric Mean Absolute Percentage Error</p>
+    </div>
+    """, unsafe_allow_html=True)
+else:
+    st.info('Please upload a CSV file to proceed.')
