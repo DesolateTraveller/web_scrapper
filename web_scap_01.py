@@ -20,6 +20,7 @@ st.title('Anomaly Detection in Time Series Data')
 # Sidebar for user inputs
 st.sidebar.header('User Inputs')
 uploaded_file = st.sidebar.file_uploader("Upload your CSV file", type=['csv'])
+
 contamination = st.sidebar.slider('Contamination', 0.01, 0.1, 0.05, key='contamination')
 eps = st.sidebar.slider('DBSCAN eps', 0.1, 1.0, 0.5, key='eps')
 min_samples = st.sidebar.slider('DBSCAN min_samples', 1, 20, 5, key='min_samples')
@@ -27,6 +28,7 @@ n_neighbors = st.sidebar.slider('LOF n_neighbors', 1, 50, 20, key='n_neighbors')
 
 if uploaded_file is not None:
     df = load_data(uploaded_file)
+    target_variable = st.sidebar.multiselect("**Target (Dependent) Variable**", df.columns, default='value')
 
     # Display the raw data
     st.subheader('Raw Data')
