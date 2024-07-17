@@ -32,10 +32,6 @@ if uploaded_file is not None:
     st.subheader('Raw Data')
     st.write(df)
 
-    # Display the plot of the time series
-    st.subheader('Time Series Plot')
-    fig = px.line(df, x=df.index, y='Value', title='Time Series Data', template="plotly_dark")
-    st.plotly_chart(fig)
 
     # Function to plot anomalies
     def plot_anomalies(df, color_column, title):
