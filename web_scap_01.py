@@ -12,8 +12,6 @@ from scipy.stats import zscore
 @st.cache_data
 def load_data(uploaded_file):
     df = pd.read_csv(uploaded_file)
-    df['Date'] = pd.to_datetime(df['Date'])
-    df.set_index('Date', inplace=True)
     return df
 
 # Streamlit app title
