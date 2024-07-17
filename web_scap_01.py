@@ -76,34 +76,6 @@ if uploaded_file is not None:
         df['anomaly_lof'] = lof.fit_predict(df[['Value']])
         plot_anomalies(df, 'anomaly_lof', 'LOF Anomalies')
 
-    # Information box
-    st.markdown("""
-    <style>
-    .info-box {
-        padding: 15px;
-        background-color: #f9f9f9;
-        border-left: 5px solid #007BFF;
-        border-radius: 5px;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    }
-    .info-box h4 {
-        color: #007BFF;
-        font-weight: bold;
-        margin-bottom: 10px;
-    }
-    .info-box p {
-        color: #333;
-    }
-    </style>
-    <div class="info-box">
-        <h4>Metrics Definitions</h4>
-        <p><strong>MSE</strong>: Mean Squared Error</p>
-        <p><strong>RMSE</strong>: Root Mean Squared Error</p>
-        <p><strong>MAE</strong>: Mean Absolute Error</p>
-        <p><strong>MAPE</strong>: Mean Absolute Percentage Error</p>
-        <p><strong>MDAPE</strong>: Median Absolute Percentage Error</p>
-        <p><strong>SMAPE</strong>: Symmetric Mean Absolute Percentage Error</p>
-    </div>
-    """, unsafe_allow_html=True)
+
 else:
     st.info('Please upload a CSV file to proceed.')
