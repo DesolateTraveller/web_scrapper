@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 import requests
 from bs4 import BeautifulSoup
 from transformers import T5ForConditionalGeneration, T5Tokenizer
-from gensim.summarization import summarize
+#from gensim.summarization import summarize
 #---------------------------------------------------------------------------------------------------------------------------------
 ### Title and description for your Streamlit app
 #---------------------------------------------------------------------------------------------------------------------------------
@@ -122,7 +122,7 @@ if st.button("**:blue[Scrape Webpage]**"):
             st.write(title)
 
             st.divider()
-              
+
             st.subheader("Page Content",divider='blue')
             with st.spinner("Scraping the webpage..."):
                 soup = parse_html(html_content)
