@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 import requests
 from bs4 import BeautifulSoup
 from transformers import T5ForConditionalGeneration, T5Tokenizer
-#from gensim.summarization import summarize
+from gensim.summarization import summarize
 #---------------------------------------------------------------------------------------------------------------------------------
 ### Title and description for your Streamlit app
 #---------------------------------------------------------------------------------------------------------------------------------
@@ -82,8 +82,8 @@ def summarize_text(text):
                               truncation=True)
     summary_ids = model.generate(
         inputs, 
-        max_length=150, 
-        min_length=50, 
+        max_length=5000, 
+        min_length=100, 
         length_penalty=2.0, 
         num_beams=4, 
         early_stopping=True
@@ -111,7 +111,7 @@ if st.button("**:blue[Scrape Webpage]**"):
 
         with col1:
 
-            with st.container(border=True):
+            with st.container(height=300,border=True):
             
                 st.write("Webpage content:")
                 st.write(html_content, unsafe_allow_html=True)  # Display raw HTML
@@ -120,18 +120,19 @@ if st.button("**:blue[Scrape Webpage]**"):
 
             st.subheader("Page Title",divider='blue')
             st.write(title)
-                  
+
+            st.divider()
+              
             st.subheader("Page Content",divider='blue')
             with st.spinner("Scraping the webpage..."):
                 soup = parse_html(html_content)
                 text = extract_text(soup)
-                summary = summarize_text(text)
-
                 st.write(snippet)
 
         with col3:                  
             
             st.subheader("Page Summary",divider='blue')
+            summary = summarize_text(text)
             st.write(summary)
 
     else:
