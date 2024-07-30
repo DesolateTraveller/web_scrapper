@@ -111,7 +111,7 @@ if st.button("**:blue[Scrape Webpage]**"):
 
         with col1:
 
-            with st.container(border=True)
+            with st.container(border=True):
             
                 st.write("Webpage content:")
                 st.write(html_content, unsafe_allow_html=True)  # Display raw HTML
