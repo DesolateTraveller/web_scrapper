@@ -82,7 +82,7 @@ def summarize_text(text):
                               truncation=True)
     summary_ids = model.generate(
         inputs, 
-        max_length=1024, 
+        max_length=512, 
         min_length=100, 
         length_penalty=2.0, 
         num_beams=4, 
@@ -133,11 +133,10 @@ if st.button("**:blue[Scrape Webpage]**"):
 
                         with col3:  
 
-                                with st.container(height=750,border=True):                
-                                    
+                                with st.container(height=750,border=True):
+
+                                    st.subheader("Page Summary",divider='blue')
                                     with st.spinner("Scraping the webpage & generating the summary.."):
-                                    
-                                        st.subheader("Page Summary",divider='blue')
                                         summary = summarize_text(text)
                                         st.write(summary)
 
