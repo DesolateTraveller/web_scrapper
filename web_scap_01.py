@@ -82,7 +82,7 @@ def summarize_text(text):
                               truncation=True)
     summary_ids = model.generate(
         inputs, 
-        max_length=5000, 
+        max_length=1024, 
         min_length=100, 
         length_penalty=2.0, 
         num_beams=4, 
@@ -111,14 +111,14 @@ if st.button("**:blue[Scrape Webpage]**"):
 
         with col1:
 
-            with st.container(height=700,border=True):
+            with st.container(height=750,border=True):
             
-                st.write("Webpage content:")
+                st.subheader("Web View",divider='blue')
                 st.write(html_content, unsafe_allow_html=True)  # Display raw HTML
 
                 with col2:
 
-                    with st.container(height=700,border=True):
+                    with st.container(height=750,border=True):
 
                         st.subheader("Page Title",divider='blue')
                         soup = parse_html(html_content)
@@ -128,17 +128,18 @@ if st.button("**:blue[Scrape Webpage]**"):
                         st.divider()
 
                         st.subheader("Page Content",divider='blue')
-                        with st.spinner("Scraping the webpage..."):
-                            text = extract_text(soup)
-                            st.write(text[:2000])
+                        text = extract_text(soup)
+                        st.write(text[:5000])
 
-                            with col3:  
+                        with col3:  
 
-                                with st.container(height=700,border=True):                
-            
-                                    st.subheader("Page Summary",divider='blue')
-                                    summary = summarize_text(text)
-                                    st.write(summary)
+                                with st.container(height=750,border=True):                
+                                    
+                                    with st.spinner("Scraping the webpage & generating the summary.."):
+                                    
+                                        st.subheader("Page Summary",divider='blue')
+                                        summary = summarize_text(text)
+                                        st.write(summary)
 
     else:
         st.error("Failed to scrape the webpage.")
