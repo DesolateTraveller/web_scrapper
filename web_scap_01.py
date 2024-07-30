@@ -13,17 +13,17 @@ import matplotlib.pyplot as plt
 import requests
 from bs4 import BeautifulSoup
 from transformers import T5ForConditionalGeneration, T5Tokenizer
-
+from gensim.summarization import summarize
 #---------------------------------------------------------------------------------------------------------------------------------
 ### Title and description for your Streamlit app
 #---------------------------------------------------------------------------------------------------------------------------------
 #import custom_style()
-st.set_page_config(page_title="Web Scrapper | v0.2",
+st.set_page_config(page_title="Web Scrapper",
                    layout="wide",
                    #page_icon=               
                    initial_sidebar_state="collapsed")
 #----------------------------------------
-st.title(f""":rainbow[Web Scrapper | v0.2]""")
+st.title(f""":rainbow[Web Scrapper | v0.3]""")
 st.markdown('Created by | <a href="mailto:avijit.mba18@gmail.com">Avijit Chakraborty</a>', 
             unsafe_allow_html=True)
 st.info('**Disclaimer : :blue[Thank you for visiting the app] | Unauthorized uses or copying of the app is strictly prohibited | Click the :blue[sidebar] to follow the instructions to start the applications.**', icon="ℹ️")
@@ -107,26 +107,32 @@ if st.button("**:blue[Scrape Webpage]**"):
     if title and snippet:
         st.success("Webpage fetched successfully!")
               
-        col1, col2 = st.columns((0.2,0.8))
+        col1, col2, col3 = st.columns((0.3,0.4,0.3))
 
         with col1:
-                  
+
+            with st.container(border=True)
+            
+                st.write("Webpage content:")
+                st.write(html_content, unsafe_allow_html=True)  # Display raw HTML
+
+        with col2:
+
             st.subheader("Page Title",divider='blue')
             st.write(title)
-
-            with col2:
                   
-                st.subheader("Page Content & Summary",divider='blue')
-                with st.spinner("Scraping the webpage..."):
-                    soup = parse_html(html_content)
-                    text = extract_text(soup)
-                    summary = summarize_text(text)
+            st.subheader("Page Content",divider='blue')
+            with st.spinner("Scraping the webpage..."):
+                soup = parse_html(html_content)
+                text = extract_text(soup)
+                summary = summarize_text(text)
 
-                    with st.popover(f"**:blue[Page Content]**"):
-                        st.write(snippet)
-                    
-                    st.divider()
-                    st.write(summary)
+                st.write(snippet)
+
+        with col3:                  
+            
+            st.subheader("Page Summary",divider='blue')
+            st.write(summary)
 
     else:
         st.error("Failed to scrape the webpage.")
