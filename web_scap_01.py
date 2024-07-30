@@ -111,29 +111,34 @@ if st.button("**:blue[Scrape Webpage]**"):
 
         with col1:
 
-            with st.container(height=300,border=True):
+            with st.container(height=700,border=True):
             
                 st.write("Webpage content:")
                 st.write(html_content, unsafe_allow_html=True)  # Display raw HTML
 
-        with col2:
+                with col2:
 
-            st.subheader("Page Title",divider='blue')
-            st.write(title)
+                    with st.container(height=700,border=True):
 
-            st.divider()
+                        st.subheader("Page Title",divider='blue')
+                        soup = parse_html(html_content)
+                        title = soup.title.string if soup.title else "No title found"
+                        st.write(title)
 
-            st.subheader("Page Content",divider='blue')
-            with st.spinner("Scraping the webpage..."):
-                soup = parse_html(html_content)
-                text = extract_text(soup)
-                st.write(snippet)
+                        st.divider()
 
-        with col3:                  
+                        st.subheader("Page Content",divider='blue')
+                        with st.spinner("Scraping the webpage..."):
+                            text = extract_text(soup)
+                            st.write(text[:2000])
+
+                            with col3:  
+
+                                with st.container(height=700,border=True):                
             
-            st.subheader("Page Summary",divider='blue')
-            summary = summarize_text(text)
-            st.write(summary)
+                                    st.subheader("Page Summary",divider='blue')
+                                    summary = summarize_text(text)
+                                    st.write(summary)
 
     else:
         st.error("Failed to scrape the webpage.")
