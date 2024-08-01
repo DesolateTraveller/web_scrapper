@@ -11,4 +11,5 @@ sentencepiece
 scipy
 scikit-learn
 plotly
-gensim
+diffusers 
+pillow
