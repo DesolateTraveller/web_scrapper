@@ -20,12 +20,16 @@ from transformers import T5ForConditionalGeneration, T5Tokenizer
 #import custom_style()
 st.set_page_config(page_title="Web Scrapper | v0.3",
                    layout="wide",
-                   #page_icon=               
+                   page_icon="💻",             
                    initial_sidebar_state="collapsed")
 #----------------------------------------
 st.title(f""":rainbow[Web Scrapper]""")
-st.markdown('Created by | <a href="mailto:avijit.mba18@gmail.com">Avijit Chakraborty</a>', 
-            unsafe_allow_html=True)
+st.markdown(
+    '''
+    Created by | <a href="mailto:avijit.mba18@gmail.com">Avijit Chakraborty</a> ( 📑 [Resume](https://resume-avijitc.streamlit.app/) | :bust_in_silhouette: [LinkedIn](https://www.linkedin.com/in/avijit2403/) | :computer: [GitHub](https://github.com/DesolateTraveller) ) |
+    for best view of the app, please **zoom-out** the browser to **75%**.
+    ''',
+    unsafe_allow_html=True)
 st.info('**Disclaimer : :blue[Thank you for visiting the app] | Unauthorized uses or copying of the app is strictly prohibited | Click the :blue[sidebar] to follow the instructions to start the applications.**', icon="ℹ️")
 #----------------------------------------
 # Set the background image
@@ -34,6 +38,7 @@ st.divider()
 ### Functions & Definitions
 #---------------------------------------------------------------------------------------------------------------------------------
 
+@st.cache_data(ttl="2h")
 def scrape_webpage(url):
     try:
         response = requests.get(url)
@@ -46,6 +51,7 @@ def scrape_webpage(url):
         st.error(f"Error fetching the URL: {e}")
         return None, None
 
+@st.cache_data(ttl="2h")
 def fetch_webpage(url):
     try:
         response = requests.get(url)
@@ -55,10 +61,12 @@ def fetch_webpage(url):
         print(f"Error fetching the webpage: {e}")
         return None
 
+@st.cache_data(ttl="2h")
 def parse_html(html_content):
     soup = BeautifulSoup(html_content, 'html.parser')
     return soup
 
+@st.cache_data(ttl="2h")
 def extract_text(soup):
     paragraphs = soup.find_all('p')
     text = ' '.join([p.get_text() for p in paragraphs])
@@ -70,7 +78,7 @@ def extract_text(soup):
     #summary = summarizer(text, max_length=150, min_length=50, do_sample=False)
     #return summary[0]['summary_text']
 
-
+@st.cache_data(ttl="2h")
 def summarize_text(text):
     model_name = "t5-large"
     tokenizer = T5Tokenizer.from_pretrained(model_name)
