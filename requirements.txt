@@ -4,6 +4,7 @@ pandas
 matplotlib
 seaborn
 requests
+BeautifulSoup
 beautifulsoup4
 transformers 
 torch
