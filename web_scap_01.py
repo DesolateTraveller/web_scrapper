@@ -1,6 +1,7 @@
 import fitz  # PyMuPDF for PDF processing
 import os
 import streamlit as st
+import tempfile
 
 # Helper function to count the number of images in a PDF
 def count_images_in_pdf(pdf_path):
@@ -46,33 +47,50 @@ def detect_pdf_source(pdf_path):
     else:
         return "Unknown"
 
-# Function to analyze all PDFs in a directory and generate results
-def analyze_pdfs(directory):
+# Function to analyze PDFs and generate results
+def analyze_pdfs(pdf_paths):
     results = []
-    for file_name in os.listdir(directory):
-        if file_name.endswith(".pdf"):
-            pdf_path = os.path.join(directory, file_name)
-            source_type = detect_pdf_source(pdf_path)
-            image_count = count_images_in_pdf(pdf_path)
-            results.append({
-                "PDF File": file_name,
-                "Source Type": source_type,
-                "Number of Images": image_count
-            })
+    for pdf_path in pdf_paths:
+        source_type = detect_pdf_source(pdf_path)
+        image_count = count_images_in_pdf(pdf_path)
+        results.append({
+            "PDF File": os.path.basename(pdf_path),
+            "Source Type": source_type,
+            "Number of Images": image_count
+        })
     return results
 
 # Streamlit UI
 st.title("PDF Source and Image Analysis")
 
-uploaded_directory = st.text_input("Enter the directory containing your PDFs:")
+# Provide option to either upload PDFs or select a directory
+option = st.radio("Choose a method to provide PDFs:", ('Upload PDFs', 'Select a directory'))
 
-if uploaded_directory and os.path.exists(uploaded_directory):
+# For uploading PDFs
+pdf_files = []
+if option == 'Upload PDFs':
+    uploaded_files = st.file_uploader("Upload PDF files", type="pdf", accept_multiple_files=True)
+    if uploaded_files:
+        for uploaded_file in uploaded_files:
+            # Save uploaded files temporarily
+            with tempfile.NamedTemporaryFile(delete=False) as temp_file:
+                temp_file.write(uploaded_file.read())
+                pdf_files.append(temp_file.name)
+
+# For selecting a directory
+elif option == 'Select a directory':
+    directory = st.text_input("Enter the directory containing your PDFs:")
+    if directory and os.path.exists(directory):
+        pdf_files = [os.path.join(directory, file) for file in os.listdir(directory) if file.endswith(".pdf")]
+
+# Analyze PDFs if any are provided
+if pdf_files:
     with st.spinner("Analyzing PDFs..."):
-        pdf_analysis_results = analyze_pdfs(uploaded_directory)
+        pdf_analysis_results = analyze_pdfs(pdf_files)
         if pdf_analysis_results:
             st.write("### PDF Analysis Results")
             st.table(pdf_analysis_results)
         else:
-            st.write("No PDFs found in the directory.")
+            st.write("No PDFs found or uploaded.")
 else:
-    st.warning("Please provide a valid directory path.")
+    st.warning("Please upload PDF files or enter a valid directory path.")
