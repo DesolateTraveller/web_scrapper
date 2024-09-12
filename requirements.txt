@@ -17,3 +17,4 @@ diffusers
 pillow
 PyMuPDF
 PyPDF2
+boto3
