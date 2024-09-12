@@ -1,100 +1,86 @@
-import fitz  # PyMuPDF for PDF processing
-import os
 import streamlit as st
-import tempfile
+import os
+import fitz  # PyMuPDF
+from PyPDF2 import PdfReader
+import boto3
 
-# Helper function to count the number of images in a PDF
-def count_images_in_pdf(pdf_path):
-    pdf_document = fitz.open(pdf_path)
-    image_count = 0
-
+@st.cache_data(ttl="2h")
+def analyze_pdf(file_path):
+    pdf_reader = PdfReader(file_path)
+    num_pages = len(pdf_reader.pages)
+    
+    # Open PDF with PyMuPDF (fitz)
+    pdf_document = fitz.open(file_path)
+    num_images = 0
+    pdf_source = None
+    
+    # Analyze content
     for page_num in range(len(pdf_document)):
-        page = pdf_document.load_page(page_num)
-        image_list = page.get_images(full=True)
-        image_count += len(image_list)
-
-    pdf_document.close()
-    return image_count
-
-# Helper function to detect source type based on content analysis
-def detect_pdf_source(pdf_path):
-    pdf_document = fitz.open(pdf_path)
-    text_content = ""
-    is_excel_format = False
-    is_image_based = False
-    for page_num in range(len(pdf_document)):
-        page = pdf_document.load_page(page_num)
-        text_content += page.get_text("text")
-
-        # Check for tables, which might indicate Excel-like structure
-        tables = page.search_for("Table")  # Simple search, can be enhanced
-        if tables:
-            is_excel_format = True
-        
-        # Check for images, if most content is image-based, consider it an image PDF
-        image_list = page.get_images(full=True)
-        if len(image_list) > 0 and not text_content.strip():
-            is_image_based = True
-
-    pdf_document.close()
-
-    if is_image_based:
-        return "Image"
-    elif is_excel_format:
-        return "Excel"
-    elif text_content.strip():
-        return "Document"
+        page = pdf_document[page_num]
+        images = page.get_images(full=True)
+        num_images += len(images)
+    
+    if num_images > 0:
+        pdf_source = "Image"
     else:
-        return "Unknown"
-
-# Function to analyze PDFs and generate results
-def analyze_pdfs(pdf_paths_with_names):
-    results = []
-    for pdf_path, pdf_name in pdf_paths_with_names:
-        pdf_document = fitz.open(pdf_path)
-        source_type = detect_pdf_source(pdf_path)
-        image_count = count_images_in_pdf(pdf_path)
-        page_count = pdf_document.page_count  # Get number of pages in the PDF
-        results.append({
-            "PDF File Name": pdf_name,  # Use the actual file name
-            "Source Type": source_type,
-            "Number of Images": image_count,
-            "Number of Pages": page_count  # Include number of pages
-        })
-        pdf_document.close()
-    return results
-
-# Streamlit UI
-st.title("PDF Source, Image, and Page Count Analysis")
-
-# Provide option to either upload PDFs or select a directory
-option = st.radio("Choose a method to provide PDFs:", ('Upload PDFs', 'Select a directory'))
-
-# For uploading PDFs
-pdf_files_with_names = []
-if option == 'Upload PDFs':
-    uploaded_files = st.file_uploader("Upload PDF files", type="pdf", accept_multiple_files=True)
-    if uploaded_files:
-        for uploaded_file in uploaded_files:
-            # Save uploaded files temporarily
-            with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as temp_file:
-                temp_file.write(uploaded_file.read())
-                pdf_files_with_names.append((temp_file.name, uploaded_file.name))  # Store temp path and original file name
-
-# For selecting a directory
-elif option == 'Select a directory':
-    directory = st.text_input("Enter the directory containing your PDFs:")
-    if directory and os.path.exists(directory):
-        pdf_files_with_names = [(os.path.join(directory, file), file) for file in os.listdir(directory) if file.endswith(".pdf")]
-
-# Analyze PDFs if any are provided
-if pdf_files_with_names:
-    with st.spinner("Analyzing PDFs..."):
-        pdf_analysis_results = analyze_pdfs(pdf_files_with_names)
-        if pdf_analysis_results:
-            st.write("### PDF Analysis Results")
-            st.table(pdf_analysis_results)  # Display table including PDF file names, source type, image count, and page count
+        first_page_text = pdf_reader.pages[0].extract_text()
+        if first_page_text:
+            if 'excel' in first_page_text.lower():
+                pdf_source = "Excel"
+            elif 'document' in first_page_text.lower():
+                pdf_source = "Document"
+            else:
+                pdf_source = "Unknown"
         else:
-            st.write("No PDFs found or uploaded.")
-else:
-    st.warning("Please upload PDF files or enter a valid directory path.")
+            pdf_source = "Unknown"
+    
+    return pdf_source, num_images, num_pages
+
+def list_s3_files(bucket_name):
+    s3_client = boto3.client("s3")
+    response = s3_client.list_objects_v2(Bucket=bucket_name)
+    files = [item["Key"] for item in response.get("Contents", []) if item["Key"].endswith(".pdf")]
+    return files
+
+def download_s3_file(bucket_name, file_key):
+    s3_client = boto3.client("s3")
+    file_path = f"/tmp/{file_key.split('/')[-1]}"
+    s3_client.download_file(bucket_name, file_key, file_path)
+    return file_path
+
+def main():
+    st.title("PDF Analysis: Source, Image Count, and Page Count")
+
+    option = st.selectbox("Select source", ["Upload from local", "Select from AWS S3"])
+
+    pdf_files = []
+    if option == "Upload from local":
+        uploaded_files = st.file_uploader("Choose PDF files", type="pdf", accept_multiple_files=True)
+        if uploaded_files:
+            for uploaded_file in uploaded_files:
+                pdf_files.append({"file_name": uploaded_file.name, "file_path": uploaded_file})
+    
+    elif option == "Select from AWS S3":
+        bucket_name = st.text_input("Enter S3 Bucket Name")
+        if bucket_name:
+            s3_files = list_s3_files(bucket_name)
+            selected_files = st.multiselect("Select PDF files from S3", s3_files)
+            for file_key in selected_files:
+                file_path = download_s3_file(bucket_name, file_key)
+                pdf_files.append({"file_name": file_key.split('/')[-1], "file_path": file_path})
+
+    if pdf_files and st.button("Analyze PDFs"):
+        result_data = []
+        for pdf in pdf_files:
+            pdf_source, num_images, num_pages = analyze_pdf(pdf["file_path"])
+            result_data.append({
+                "PDF File": pdf["file_name"],
+                "Source Type": pdf_source,
+                "Image Count": num_images,
+                "Page Count": num_pages
+            })
+
+        st.table(result_data)
+
+if __name__ == "__main__":
+    main()
