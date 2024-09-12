@@ -48,13 +48,13 @@ def detect_pdf_source(pdf_path):
         return "Unknown"
 
 # Function to analyze PDFs and generate results
-def analyze_pdfs(pdf_paths):
+def analyze_pdfs(pdf_paths_with_names):
     results = []
-    for pdf_path in pdf_paths:
+    for pdf_path, pdf_name in pdf_paths_with_names:
         source_type = detect_pdf_source(pdf_path)
         image_count = count_images_in_pdf(pdf_path)
         results.append({
-            "PDF File": os.path.basename(pdf_path),  # Include PDF file name
+            "PDF File Name": pdf_name,  # Use the actual file name
             "Source Type": source_type,
             "Number of Images": image_count
         })
@@ -67,26 +67,26 @@ st.title("PDF Source and Image Analysis")
 option = st.radio("Choose a method to provide PDFs:", ('Upload PDFs', 'Select a directory'))
 
 # For uploading PDFs
-pdf_files = []
+pdf_files_with_names = []
 if option == 'Upload PDFs':
     uploaded_files = st.file_uploader("Upload PDF files", type="pdf", accept_multiple_files=True)
     if uploaded_files:
         for uploaded_file in uploaded_files:
             # Save uploaded files temporarily
-            with tempfile.NamedTemporaryFile(delete=False) as temp_file:
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as temp_file:
                 temp_file.write(uploaded_file.read())
-                pdf_files.append(temp_file.name)
+                pdf_files_with_names.append((temp_file.name, uploaded_file.name))  # Store temp path and original file name
 
 # For selecting a directory
 elif option == 'Select a directory':
     directory = st.text_input("Enter the directory containing your PDFs:")
     if directory and os.path.exists(directory):
-        pdf_files = [os.path.join(directory, file) for file in os.listdir(directory) if file.endswith(".pdf")]
+        pdf_files_with_names = [(os.path.join(directory, file), file) for file in os.listdir(directory) if file.endswith(".pdf")]
 
 # Analyze PDFs if any are provided
-if pdf_files:
+if pdf_files_with_names:
     with st.spinner("Analyzing PDFs..."):
-        pdf_analysis_results = analyze_pdfs(pdf_files)
+        pdf_analysis_results = analyze_pdfs(pdf_files_with_names)
         if pdf_analysis_results:
             st.write("### PDF Analysis Results")
             st.table(pdf_analysis_results)  # Display table including PDF file names
