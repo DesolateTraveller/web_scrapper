@@ -1,45 +1,78 @@
+import fitz  # PyMuPDF for PDF processing
+import os
 import streamlit as st
-from bs4 import BeautifulSoup
-import requests
 
-@st.cache_data
-def scrape_webpage(url):
-    try:
-        response = requests.get(url)
-        response.raise_for_status()  # Check for HTTP errors
-        soup = BeautifulSoup(response.content, 'html.parser')
+# Helper function to count the number of images in a PDF
+def count_images_in_pdf(pdf_path):
+    pdf_document = fitz.open(pdf_path)
+    image_count = 0
 
-        # Example: Extracting some serializable data
-        title = soup.title.string if soup.title else "No title"
-        headings = [h.get_text(strip=True) for h in soup.find_all('h1')]
-        paragraphs = [p.get_text(strip=True) for p in soup.find_all('p')]
+    for page_num in range(len(pdf_document)):
+        page = pdf_document.load_page(page_num)
+        image_list = page.get_images(full=True)
+        image_count += len(image_list)
 
-        # Return serializable data only
-        return {
-            "title": title,
-            "headings": headings,
-            "paragraphs": paragraphs
-        }
+    pdf_document.close()
+    return image_count
 
-    except requests.exceptions.RequestException as e:
-        return {"error": str(e)}
+# Helper function to detect source type based on content analysis
+def detect_pdf_source(pdf_path):
+    pdf_document = fitz.open(pdf_path)
+    text_content = ""
+    is_excel_format = False
+    is_image_based = False
+    for page_num in range(len(pdf_document)):
+        page = pdf_document.load_page(page_num)
+        text_content += page.get_text("text")
 
-def main():
-    st.title("Web Scraper")
+        # Check for tables, which might indicate Excel-like structure
+        tables = page.search_for("Table")  # Simple search, can be enhanced
+        if tables:
+            is_excel_format = True
+        
+        # Check for images, if most content is image-based, consider it an image PDF
+        image_list = page.get_images(full=True)
+        if len(image_list) > 0 and not text_content.strip():
+            is_image_based = True
 
-    url = st.text_input("Enter a URL to scrape")
-    
-    if st.button("Scrape"):
-        if url:
-            data = scrape_webpage(url)
-            if "error" in data:
-                st.error(data["error"])
-            else:
-                st.write("**Title:**", data["title"])
-                st.write("**Headings:**", data["headings"])
-                st.write("**Paragraphs:**", data["paragraphs"])
+    pdf_document.close()
+
+    if is_image_based:
+        return "Image"
+    elif is_excel_format:
+        return "Excel"
+    elif text_content.strip():
+        return "Document"
+    else:
+        return "Unknown"
+
+# Function to analyze all PDFs in a directory and generate results
+def analyze_pdfs(directory):
+    results = []
+    for file_name in os.listdir(directory):
+        if file_name.endswith(".pdf"):
+            pdf_path = os.path.join(directory, file_name)
+            source_type = detect_pdf_source(pdf_path)
+            image_count = count_images_in_pdf(pdf_path)
+            results.append({
+                "PDF File": file_name,
+                "Source Type": source_type,
+                "Number of Images": image_count
+            })
+    return results
+
+# Streamlit UI
+st.title("PDF Source and Image Analysis")
+
+uploaded_directory = st.text_input("Enter the directory containing your PDFs:")
+
+if uploaded_directory and os.path.exists(uploaded_directory):
+    with st.spinner("Analyzing PDFs..."):
+        pdf_analysis_results = analyze_pdfs(uploaded_directory)
+        if pdf_analysis_results:
+            st.write("### PDF Analysis Results")
+            st.table(pdf_analysis_results)
         else:
-            st.warning("Please enter a valid URL.")
-
-if __name__ == "__main__":
-    main()
+            st.write("No PDFs found in the directory.")
+else:
+    st.warning("Please provide a valid directory path.")
