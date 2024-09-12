@@ -54,7 +54,7 @@ def analyze_pdfs(pdf_paths):
         source_type = detect_pdf_source(pdf_path)
         image_count = count_images_in_pdf(pdf_path)
         results.append({
-            "PDF File": os.path.basename(pdf_path),
+            "PDF File": os.path.basename(pdf_path),  # Include PDF file name
             "Source Type": source_type,
             "Number of Images": image_count
         })
@@ -89,7 +89,7 @@ if pdf_files:
         pdf_analysis_results = analyze_pdfs(pdf_files)
         if pdf_analysis_results:
             st.write("### PDF Analysis Results")
-            st.table(pdf_analysis_results)
+            st.table(pdf_analysis_results)  # Display table including PDF file names
         else:
             st.write("No PDFs found or uploaded.")
 else:
