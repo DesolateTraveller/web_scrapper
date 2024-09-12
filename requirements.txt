@@ -3,8 +3,9 @@ numpy
 pandas
 matplotlib
 seaborn
+#---------------------
 requests
-BeautifulSoup
+#BeautifulSoup
 beautifulsoup4
 transformers 
 torch
