@@ -51,17 +51,21 @@ def detect_pdf_source(pdf_path):
 def analyze_pdfs(pdf_paths_with_names):
     results = []
     for pdf_path, pdf_name in pdf_paths_with_names:
+        pdf_document = fitz.open(pdf_path)
         source_type = detect_pdf_source(pdf_path)
         image_count = count_images_in_pdf(pdf_path)
+        page_count = pdf_document.page_count  # Get number of pages in the PDF
         results.append({
             "PDF File Name": pdf_name,  # Use the actual file name
             "Source Type": source_type,
-            "Number of Images": image_count
+            "Number of Images": image_count,
+            "Number of Pages": page_count  # Include number of pages
         })
+        pdf_document.close()
     return results
 
 # Streamlit UI
-st.title("PDF Source and Image Analysis")
+st.title("PDF Source, Image, and Page Count Analysis")
 
 # Provide option to either upload PDFs or select a directory
 option = st.radio("Choose a method to provide PDFs:", ('Upload PDFs', 'Select a directory'))
@@ -89,7 +93,7 @@ if pdf_files_with_names:
         pdf_analysis_results = analyze_pdfs(pdf_files_with_names)
         if pdf_analysis_results:
             st.write("### PDF Analysis Results")
-            st.table(pdf_analysis_results)  # Display table including PDF file names
+            st.table(pdf_analysis_results)  # Display table including PDF file names, source type, image count, and page count
         else:
             st.write("No PDFs found or uploaded.")
 else:
