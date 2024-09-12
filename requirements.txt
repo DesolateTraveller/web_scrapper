@@ -16,3 +16,4 @@ plotly
 diffusers 
 pillow
 PyMuPDF
+PyPDF2
