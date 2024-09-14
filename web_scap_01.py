@@ -1,109 +1,152 @@
-import fitz  # PyMuPDF for PDF processing
-import os
+#---------------------------------------------------------------------------------------------------------------------------------
+### Authenticator
+#---------------------------------------------------------------------------------------------------------------------------------
 import streamlit as st
-import tempfile
+#---------------------------------------------------------------------------------------------------------------------------------
+### Import Libraries
+#---------------------------------------------------------------------------------------------------------------------------------
+import numpy as np
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+#----------------------------------------
+import requests
+from bs4 import BeautifulSoup
+from transformers import T5ForConditionalGeneration, T5Tokenizer
+#from gensim.summarization import summarize
+#---------------------------------------------------------------------------------------------------------------------------------
+### Title and description for your Streamlit app
+#---------------------------------------------------------------------------------------------------------------------------------
+#import custom_style()
+st.set_page_config(page_title="Web Scrapper | v0.3",
+                   layout="wide",
+                   page_icon="💻",             
+                   initial_sidebar_state="collapsed")
+#----------------------------------------
+st.title(f""":rainbow[Web Scrapper]""")
+st.markdown(
+    '''
+    Created by | <a href="mailto:avijit.mba18@gmail.com">Avijit Chakraborty</a> ( 📑 [Resume](https://resume-avijitc.streamlit.app/) | :bust_in_silhouette: [LinkedIn](https://www.linkedin.com/in/avijit2403/) | :computer: [GitHub](https://github.com/DesolateTraveller) ) |
+    for best view of the app, please **zoom-out** the browser to **75%**.
+    ''',
+    unsafe_allow_html=True)
+st.info('**Disclaimer : :blue[Thank you for visiting the app] | Unauthorized uses or copying of the app is strictly prohibited | Click the :blue[sidebar] to follow the instructions to start the applications.**', icon="ℹ️")
+#----------------------------------------
+# Set the background image
+st.divider()
+#---------------------------------------------------------------------------------------------------------------------------------
+### Functions & Definitions
+#---------------------------------------------------------------------------------------------------------------------------------
 
-# Helper function to count the number of images in a PDF
-def count_images_in_pdf(pdf_path):
-    pdf_document = fitz.open(pdf_path)
-    image_count = 0
+#@st.cache_data(ttl="2h")
+def scrape_webpage(url):
+    try:
+        response = requests.get(url)
+        response.raise_for_status() 
+        soup = BeautifulSoup(response.text, 'html.parser')
+        title = soup.title.string if soup.title else "No title found"
+        snippet = ' '.join(soup.get_text().split()[:])  
+        return title, snippet
+    except requests.exceptions.RequestException as e:
+        st.error(f"Error fetching the URL: {e}")
+        return None, None
 
-    for page_num in range(len(pdf_document)):
-        page = pdf_document.load_page(page_num)
-        image_list = page.get_images(full=True)
-        image_count += len(image_list)
+@st.cache_data(ttl="2h")
+def fetch_webpage(url):
+    try:
+        response = requests.get(url)
+        response.raise_for_status()  
+        return response.text
+    except requests.RequestException as e:
+        print(f"Error fetching the webpage: {e}")
+        return None
 
-    pdf_document.close()
-    return image_count
+@st.cache_data(ttl="2h")
+def parse_html(html_content):
+    soup = BeautifulSoup(html_content, 'html.parser')
+    return soup
 
-# Helper function to detect source type based on content analysis
-def detect_pdf_source(pdf_path):
-    pdf_document = fitz.open(pdf_path)
-    text_content = ""
-    is_excel_format = False
-    is_image_based = False
-    for page_num in range(len(pdf_document)):
-        page = pdf_document.load_page(page_num)
-        text_content += page.get_text("text")
+@st.cache_data(ttl="2h")
+def extract_text(soup):
+    paragraphs = soup.find_all('p')
+    text = ' '.join([p.get_text() for p in paragraphs])
+    return text
 
-        # Check for tables, which might indicate Excel-like structure
-        tables = page.search_for("Table")  # Simple search, can be enhanced
-        if tables:
-            is_excel_format = True
-        
-        # Check for images, if most content is image-based, consider it an image PDF
-        image_list = page.get_images(full=True)
-        if len(image_list) > 0 and not text_content.strip():
-            is_image_based = True
+#def summarize_text(text):
+    #summarizer = pipeline("summarization", model="facebook/bart-large-cnn")
+    ## Summarize the text
+    #summary = summarizer(text, max_length=150, min_length=50, do_sample=False)
+    #return summary[0]['summary_text']
 
-    pdf_document.close()
+@st.cache_data(ttl="2h")
+def summarize_text(text):
+    model_name = "t5-large"
+    tokenizer = T5Tokenizer.from_pretrained(model_name)
+    model = T5ForConditionalGeneration.from_pretrained(model_name)
+    preprocessed_text = "summarize: " + text.strip().replace("\n", " ")
+    inputs = tokenizer.encode(preprocessed_text, 
+                              return_tensors="pt", 
+                              max_length=512, 
+                              truncation=True)
+    summary_ids = model.generate(
+        inputs, 
+        max_length=512, 
+        min_length=100, 
+        length_penalty=2.0, 
+        num_beams=4, 
+        early_stopping=True
+    )
 
-    if is_image_based:
-        return "Image"
-    elif is_excel_format:
-        return "Excel"
-    elif text_content.strip():
-        return "Document"
+    # Decode the summary
+    summary = tokenizer.decode(summary_ids[0], skip_special_tokens=True)
+    return summary
+#---------------------------------------------------------------------------------------------------------------------------------
+### Main app
+#---------------------------------------------------------------------------------------------------------------------------------
+
+# Input field for the URL
+url = st.text_input("**:blue[Enter the URL of the webpage you want to scrape:]**")
+if st.button("**:blue[Scrape Webpage]**"):
+    
+    st.divider()
+    html_content = fetch_webpage(url)
+    title, snippet = scrape_webpage(url)
+            
+    if title and snippet:
+        st.success("Webpage fetched successfully!")
+              
+        col1, col2, col3 = st.columns((0.3,0.4,0.3))
+
+        with col1:
+
+            with st.container(height=750,border=True):
+            
+                st.subheader("Web View",divider='blue')
+                st.write(html_content, unsafe_allow_html=True)  # Display raw HTML
+
+                with col2:
+
+                    with st.container(height=750,border=True):
+
+                        st.subheader("Page Title",divider='blue')
+                        soup = parse_html(html_content)
+                        title = soup.title.string if soup.title else "No title found"
+                        st.write(title)
+
+                        st.divider()
+
+                        st.subheader("Page Content",divider='blue')
+                        text = extract_text(soup)
+                        st.write(text[:5000])
+
+                        with col3:  
+
+                                with st.container(height=750,border=True):
+
+                                    st.subheader("Page Summary",divider='blue')
+                                    with st.spinner("Scraping the webpage & generating the summary.."):
+                                        summary = summarize_text(text)
+                                        st.write(summary)
+
     else:
-        return "Unknown"
-
-# Function to analyze PDFs and generate results
-def analyze_pdfs(pdf_paths_with_names):
-    results = []
-    for pdf_path, pdf_name in pdf_paths_with_names:
-        pdf_document = fitz.open(pdf_path)
-        source_type = detect_pdf_source(pdf_path)
-        image_count = count_images_in_pdf(pdf_path)
-        page_count = pdf_document.page_count  # Get number of pages in the PDF
-        results.append({
-            "PDF File Name": pdf_name,  # Use the actual file name
-            "Source Type": source_type,
-            "Number of Images": image_count,
-            "Number of Pages": page_count  # Include number of pages
-        })
-        pdf_document.close()
-    return results
-
-# Streamlit UI
-st.title("PDF Source, Image, and Page Count Analysis")
-
-# Provide option to either upload PDFs or select a path location
-option = st.radio("Choose a method to provide PDFs:", ('Upload PDFs', 'Enter a path location'))
-
-# For uploading PDFs
-pdf_files_with_names = []
-temp_files_to_delete = []  # Track temporary files to delete them later
-if option == 'Upload PDFs':
-    uploaded_files = st.file_uploader("Upload PDF files", type="pdf", accept_multiple_files=True)
-    if uploaded_files:
-        for uploaded_file in uploaded_files:
-            # Save uploaded files temporarily
-            with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as temp_file:
-                temp_file.write(uploaded_file.read())
-                pdf_files_with_names.append((temp_file.name, uploaded_file.name))  # Store temp path and original file name
-                temp_files_to_delete.append(temp_file.name)  # Track temp file for deletion
-
-# For providing a path location
-elif option == 'Enter a path location':
-    directory = st.text_input("Enter the file path containing your PDFs:")
-    if directory and os.path.exists(directory):
-        # List all PDF files from the provided location path
-        pdf_files_with_names = [(os.path.join(directory, file), file) for file in os.listdir(directory) if file.endswith(".pdf")]
-
-# Analyze PDFs if any are provided
-if pdf_files_with_names:
-    with st.spinner("Analyzing PDFs..."):
-        pdf_analysis_results = analyze_pdfs(pdf_files_with_names)
-        if pdf_analysis_results:
-            st.write("### PDF Analysis Results")
-            st.table(pdf_analysis_results)  # Display table including PDF file names, source type, image count, and page count
-        else:
-            st.write("No PDFs found or uploaded.")
-
-    # Delete the temporary files after processing
-    for temp_file in temp_files_to_delete:
-        if os.path.exists(temp_file):
-            os.remove(temp_file)  # Delete the temp file after analysis is done
-            st.write(f"Deleted temporary file: {temp_file}")
-else:
-    st.warning("Please upload PDF files or enter a valid path.")
+        st.error("Failed to scrape the webpage.")
