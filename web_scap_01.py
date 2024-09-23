@@ -59,11 +59,15 @@ if uploaded_pdf is not None:
     st.subheader("Extracted Data")
     st.write(df)
 
+    # Generate unique key for each download button (to avoid DuplicateWidgetID)
+    unique_key = f"img_from_pdf_{file_type.lower()}"
+
     # Download button for Excel or CSV file
     output_file = save_as_excel_or_csv(df, file_type)
     st.download_button(
         label=f"Download {file_type} file",
         data=output_file,
         file_name=f"extracted_data.{file_type.lower()}",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" if file_type == "Excel" else "text/csv"
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" if file_type == "Excel" else "text/csv",
+        key=unique_key  # Unique key for the widget to avoid DuplicateWidgetID error
     )
