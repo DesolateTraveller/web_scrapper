@@ -1,64 +1,69 @@
-import streamlit as st
-import PyPDF2
+import fitz  # PyMuPDF
 import pandas as pd
-import tempfile
-import os
-import re
-import openpyxl
+import streamlit as st
+from io import BytesIO
 
-# Regular expressions for extracting common invoice information
-invoice_number_re = r"Invoice\sNumber:\s(\d+)"
-invoice_date_re = r"Invoice\sDate:\s(\d{2}/\d{2}/\d{4})"
-customer_name_re = r"Customer\sName:\s(.+)"
-total_amount_re = r"Total\sAmount:\s(\d+\.\d{2})"
+# Function to extract text from the PDF
+def extract_text_from_pdf(pdf_file):
+    doc = fitz.open(stream=pdf_file.read(), filetype="pdf")  # Open the PDF file
+    extracted_text = ""
+    
+    # Loop through each page and extract text
+    for page_num in range(len(doc)):
+        page = doc.load_page(page_num)
+        extracted_text += page.get_text("text")  # Extract text from the page
+    
+    return extracted_text
 
-def extract_invoice_data(pdf_file_path):
-    """Extracts invoice information from a PDF file."""
-    with open(pdf_file_path, "rb") as pdf_reader:
-        reader = PyPDF2.PdfReader(pdf_reader)
-        text = " ".join([page.extract_text() for page in reader.pages])
+# Function to process the extracted text (optional)
+def process_extracted_text(extracted_text):
+    # Here you can apply custom text processing logic.
+    # For simplicity, we split lines and treat them as rows.
+    rows = [line.split() for line in extracted_text.split("\n") if line.strip()]
+    
+    # Convert rows into a DataFrame
+    df = pd.DataFrame(rows)
+    return df
 
-        invoice_number = re.search(invoice_number_re, text).group(1)
-        invoice_date = re.search(invoice_date_re, text).group(1)
-        customer_name = re.search(customer_name_re, text).group(1)
-        total_amount = re.search(total_amount_re, text).group(1)
+# Function to save DataFrame as Excel or CSV
+def save_as_excel_or_csv(df, file_type):
+    output = BytesIO()
+    if file_type == "Excel":
+        with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
+            df.to_excel(writer, index=False, sheet_name="Extracted_Data")
+        output.seek(0)
+    elif file_type == "CSV":
+        output.write(df.to_csv(index=False).encode('utf-8'))
+        output.seek(0)
+    
+    return output
 
-        return {
-            "Invoice Number": invoice_number,
-            "Invoice Date": invoice_date,
-            "Customer Name": customer_name,
-            "Total Amount": total_amount
-        }
+# Streamlit UI
+st.title("PDF to Excel/CSV Extractor")
 
+# File uploader
+uploaded_pdf = st.file_uploader("Choose a PDF file", type="pdf")
 
-st.title("PDF Invoice Data Extraction")
+# Select file type for download
+file_type = st.selectbox("Select file type for download", ["Excel", "CSV"])
 
-    # Upload PDF file
-pdf_file = st.file_uploader("Upload PDF Invoice", type="pdf")
+# If a PDF is uploaded, extract text and process it
+if uploaded_pdf is not None:
+    with st.spinner("Extracting text from PDF..."):
+        extracted_text = extract_text_from_pdf(uploaded_pdf)
 
-if pdf_file:
-        # Save the uploaded file to a temporary location
-        with tempfile.NamedTemporaryFile(delete=False) as temp_file:
-            pdf_file.save_as(temp_file.name)
-            temp_file_path = temp_file.name
+    # Process the extracted text into a DataFrame
+    df = process_extracted_text(extracted_text)
 
-        # Extract invoice data
-        invoice_data = extract_invoice_data(temp_file_path)
+    # Show extracted data in the app
+    st.subheader("Extracted Data")
+    st.write(df)
 
-        # Display extracted data
-        st.header("Extracted Invoice Data")
-        for key, value in invoice_data.items():
-            st.write(f"{key}: {value}")
-
-        # Create Excel file
-        excel_file = "invoice_data.xlsx"
-        df = pd.DataFrame(invoice_data, index=[0])
-        df.to_excel(excel_file, index=False)
-
-        # Download Excel file
-        st.download_button(label="Download Excel", data=open(excel_file, "rb").read(), file_name=excel_file)
-
-        # Remove the temporary file
-        os.remove(temp_file_path)
-
-
+    # Download button for Excel or CSV file
+    output_file = save_as_excel_or_csv(df, file_type)
+    st.download_button(
+        label=f"Download {file_type} file",
+        data=output_file,
+        file_name=f"extracted_data.{file_type.lower()}",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" if file_type == "Excel" else "text/csv"
+    )
