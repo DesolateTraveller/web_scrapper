@@ -11,11 +11,15 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 #----------------------------------------
 
-st.set_page_config(initial_sidebar_state = "expanded")
+col1, col2, col3 = st.sidebar.columns(3)
+col1.write('test')
+col2.button('Click me')
+with st.sidebar.popover('Popover with columns (WORKING)'):
+        col1, col2 = st.columns(2)
+            col1.write('INSIDE THE POPOVER')
+            col2.button('DO SOMETHING')
 
-with st.sidebar:
-  st.caption('👩🏻‍💼 Clinical trial')
-  s1, s2, s3 = st.columns((2.5,1.2,1))
-  sb = s1.selectbox('', ['DUMMY'], label_visibility="collapsed")
-  with s2.popover("📥"): st.html("<h1>Config</h1>")
-  s3.button('💾')
+with col3.popover('Popover with columns (NOT WORKING)'):
+            col1, col2 = st.columns(2)
+            col1.write('INSIDE THE POPOVER')
+            col2.button('DO SOMETHING')
