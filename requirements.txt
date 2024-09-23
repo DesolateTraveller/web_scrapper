@@ -22,3 +22,4 @@ pdf2image
 pytesseract
 poppler-utils
 openpyxl
+xlsxwriter
