@@ -10,9 +10,9 @@ invoice_date_re = r"Invoice\sDate:\s(\d{2}/\d{2}/\d{4})"
 customer_name_re = r"Customer\sName:\s(.+)"
 total_amount_re = r"Total\sAmount:\s(\d+\.\d{2})"
 
-def extract_invoice_data(pdf_file):
+def extract_invoice_data(pdf_file_path):
     """Extracts invoice information from a PDF file."""
-    with open(pdf_file, "rb") as pdf_reader:
+    with open(pdf_file_path, "rb") as pdf_reader:
         reader = PyPDF2.PdfReader(pdf_reader)
         text = " ".join([page.extract_text() for page in reader.pages])
 
@@ -35,8 +35,13 @@ def main():
     pdf_file = st.file_uploader("Upload PDF Invoice", type="pdf")
 
     if pdf_file:
+        # Save the uploaded file to a temporary location
+        with tempfile.NamedTemporaryFile(delete=False) as temp_file:
+            pdf_file.save_as(temp_file.name)
+            temp_file_path = temp_file.name
+
         # Extract invoice data
-        invoice_data = extract_invoice_data(pdf_file)
+        invoice_data = extract_invoice_data(temp_file_path)
 
         # Display extracted data
         st.header("Extracted Invoice Data")
@@ -50,6 +55,9 @@ def main():
 
         # Download Excel file
         st.download_button(label="Download Excel", data=open(excel_file, "rb").read(), file_name=excel_file)
+
+        # Remove the temporary file
+        os.remove(temp_file_path)
 
 if __name__ == "__main__":
     main()
