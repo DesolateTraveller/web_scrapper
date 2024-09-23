@@ -3,7 +3,7 @@ import pandas as pd
 import streamlit as st
 from io import BytesIO
 
-# Function to extract text from the PDF
+# Function to extract text from a PDF
 def extract_text_from_pdf(pdf_file):
     doc = fitz.open(stream=pdf_file.read(), filetype="pdf")  # Open the PDF file
     extracted_text = ""
@@ -15,10 +15,9 @@ def extract_text_from_pdf(pdf_file):
     
     return extracted_text
 
-# Function to process the extracted text (optional)
+# Function to process extracted text into a structured format
 def process_extracted_text(extracted_text):
-    # Here you can apply custom text processing logic.
-    # For simplicity, we split lines and treat them as rows.
+    # Split lines into rows and columns (basic processing)
     rows = [line.split() for line in extracted_text.split("\n") if line.strip()]
     
     # Convert rows into a DataFrame
@@ -28,6 +27,7 @@ def process_extracted_text(extracted_text):
 # Function to save DataFrame as Excel or CSV
 def save_as_excel_or_csv(df, file_type):
     output = BytesIO()
+    
     if file_type == "Excel":
         with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
             df.to_excel(writer, index=False, sheet_name="Extracted_Data")
@@ -38,36 +38,35 @@ def save_as_excel_or_csv(df, file_type):
     
     return output
 
-# Streamlit UI
-st.title("PDF to Excel/CSV Extractor")
+# Streamlit app
+st.title("PDF to Excel/CSV Converter")
 
-# File uploader
-uploaded_pdf = st.file_uploader("Choose a PDF file", type="pdf")
+# File uploader for PDF
+uploaded_pdf = st.file_uploader("Upload a PDF file", type="pdf")
 
 # Select file type for download
 file_type = st.selectbox("Select file type for download", ["Excel", "CSV"])
 
-# If a PDF is uploaded, extract text and process it
+# Process PDF and allow download if a PDF is uploaded
 if uploaded_pdf is not None:
     with st.spinner("Extracting text from PDF..."):
+        # Extract text from the uploaded PDF
         extracted_text = extract_text_from_pdf(uploaded_pdf)
+        
+        # Process the extracted text into a DataFrame
+        df = process_extracted_text(extracted_text)
 
-    # Process the extracted text into a DataFrame
-    df = process_extracted_text(extracted_text)
+        # Display the extracted data
+        st.subheader("Extracted Data")
+        st.write(df)
 
-    # Show extracted data in the app
-    st.subheader("Extracted Data")
-    st.write(df)
+        # Save as Excel or CSV
+        file_data = save_as_excel_or_csv(df, file_type)
 
-    # Generate unique key for each download button (to avoid DuplicateWidgetID)
-    unique_key = f"img_from_pdf_{file_type.lower()}"
-
-    # Download button for Excel or CSV file
-    output_file = save_as_excel_or_csv(df, file_type)
-    st.download_button(
-        label=f"Download {file_type} file",
-        data=output_file,
-        file_name=f"extracted_data.{file_type.lower()}",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" if file_type == "Excel" else "text/csv",
-        key=unique_key  # Unique key for the widget to avoid DuplicateWidgetID error
-    )
+        # Provide download button
+        st.download_button(
+            label=f"Download {file_type} file",
+            data=file_data,
+            file_name=f"extracted_data.{file_type.lower()}",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" if file_type == "Excel" else "text/csv"
+        )
