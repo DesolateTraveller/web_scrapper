@@ -1,83 +1,55 @@
-import pytesseract
-from pdf2image import convert_from_path
-import pandas as pd
-from io import BytesIO
 import streamlit as st
-import tempfile
-import os
+import PyPDF2
+import pandas as pd
+import re
+import openpyxl
 
-# Function to convert PDF to images
-def pdf_to_images(pdf_file):
-    # Use a temporary file to save the uploaded PDF
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as temp_file:
-        temp_file.write(pdf_file.read())
-        temp_file_path = temp_file.name
-    
-    # Convert PDF to images
-    images = convert_from_path(temp_file_path)
-    
-    # Clean up temporary file
-    os.remove(temp_file_path)
-    
-    return images
+# Regular expressions for extracting common invoice information
+invoice_number_re = r"Invoice\sNumber:\s(\d+)"
+invoice_date_re = r"Invoice\sDate:\s(\d{2}/\d{2}/\d{4})"
+customer_name_re = r"Customer\sName:\s(.+)"
+total_amount_re = r"Total\sAmount:\s(\d+\.\d{2})"
 
-# Function to extract text from images using Tesseract OCR
-def extract_text_from_images(images):
-    extracted_texts = []
-    for image in images:
-        text = pytesseract.image_to_string(image)
-        extracted_texts.append(text)
-    return extracted_texts
+def extract_invoice_data(pdf_file):
+    """Extracts invoice information from a PDF file."""
+    with open(pdf_file, "rb") as pdf_reader:
+        reader = PyPDF2.PdfReader(pdf_reader)
+        text = " ".join([page.extract_text() for page in reader.pages])
 
-# Function to structure the text data and save to Excel
-def create_excel_from_text(text_data):
-    data = []
-    
-    for text in text_data:
-        # Assuming each line in the text corresponds to a row in the invoice (e.g., item details)
-        lines = text.split("\n")
-        for line in lines:
-            columns = line.split()  # You can split by space, tab, or use regex based on your invoice structure
-            if len(columns) > 1:  # Ensuring the row has more than one column
-                data.append(columns)
-    
-    # Create DataFrame (you may need to refine the structure depending on your invoices)
-    df = pd.DataFrame(data)
+        invoice_number = re.search(invoice_number_re, text).group(1)
+        invoice_date = re.search(invoice_date_re, text).group(1)
+        customer_name = re.search(customer_name_re, text).group(1)
+        total_amount = re.search(total_amount_re, text).group(1)
 
-    # Create an Excel file in memory
-    output = BytesIO()
-    with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
-        df.to_excel(writer, index=False, sheet_name="Invoice_Data")
-        writer.close()
+        return {
+            "Invoice Number": invoice_number,
+            "Invoice Date": invoice_date,
+            "Customer Name": customer_name,
+            "Total Amount": total_amount
+        }
 
-    output.seek(0)
-    return df, output
+def main():
+    st.title("PDF Invoice Data Extraction")
 
-# Streamlit app to upload PDF invoices and convert to Excel
-st.title("Invoice PDF to Excel Converter")
+    # Upload PDF file
+    pdf_file = st.file_uploader("Upload PDF Invoice", type="pdf")
 
-# File uploader for PDF files
-uploaded_pdf = st.file_uploader("Upload PDF Invoice", type="pdf")
+    if pdf_file:
+        # Extract invoice data
+        invoice_data = extract_invoice_data(pdf_file)
 
-if uploaded_pdf is not None:
-    with st.spinner("Converting PDF to images..."):
-        images = pdf_to_images(uploaded_pdf)
+        # Display extracted data
+        st.header("Extracted Invoice Data")
+        for key, value in invoice_data.items():
+            st.write(f"{key}: {value}")
 
-    with st.spinner("Extracting text from images..."):
-        text_data = extract_text_from_images(images)
-    
-    st.success("Text extracted from invoice images.")
-    
-    # Process the extracted text into Excel format
-    df, excel_file = create_excel_from_text(text_data)
-    
-    # Display the DataFrame as a table in the view
-    st.dataframe(df)  # Display the extracted data as a table
+        # Create Excel file
+        excel_file = "invoice_data.xlsx"
+        df = pd.DataFrame(invoice_data, index=[0])
+        df.to_excel(excel_file, index=False)
 
-    # Display download button for the Excel file
-    st.download_button(
-        label="Download Excel file",
-        data=excel_file,
-        file_name="invoice_data.xlsx",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    )
+        # Download Excel file
+        st.download_button(label="Download Excel", data=open(excel_file, "rb").read(), file_name=excel_file)
+
+if __name__ == "__main__":
+    main()
