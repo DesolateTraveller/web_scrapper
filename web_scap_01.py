@@ -1,6 +1,8 @@
 import streamlit as st
 import PyPDF2
 import pandas as pd
+import tempfile
+import os
 import re
 import openpyxl
 
@@ -28,13 +30,13 @@ def extract_invoice_data(pdf_file_path):
             "Total Amount": total_amount
         }
 
-def main():
-    st.title("PDF Invoice Data Extraction")
+
+st.title("PDF Invoice Data Extraction")
 
     # Upload PDF file
-    pdf_file = st.file_uploader("Upload PDF Invoice", type="pdf")
+pdf_file = st.file_uploader("Upload PDF Invoice", type="pdf")
 
-    if pdf_file:
+if pdf_file:
         # Save the uploaded file to a temporary location
         with tempfile.NamedTemporaryFile(delete=False) as temp_file:
             pdf_file.save_as(temp_file.name)
@@ -59,5 +61,4 @@ def main():
         # Remove the temporary file
         os.remove(temp_file_path)
 
-if __name__ == "__main__":
-    main()
+
