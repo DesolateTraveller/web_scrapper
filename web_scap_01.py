@@ -5,16 +5,18 @@ from io import BytesIO
 import streamlit as st
 import tempfile
 import os
-import re
 
 # Function to convert PDF to images
 def pdf_to_images(pdf_file):
+    # Use a temporary file to save the uploaded PDF
     with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as temp_file:
         temp_file.write(pdf_file.read())
         temp_file_path = temp_file.name
     
+    # Convert PDF to images
     images = convert_from_path(temp_file_path)
     
+    # Clean up temporary file
     os.remove(temp_file_path)
     
     return images
@@ -27,47 +29,29 @@ def extract_text_from_images(images):
         extracted_texts.append(text)
     return extracted_texts
 
-# Function to parse text and structure data
-def parse_invoice_text(text_data):
+# Function to structure the text data and save to Excel
+def create_excel_from_text(text_data):
     data = []
     
     for text in text_data:
+        # Assuming each line in the text corresponds to a row in the invoice (e.g., item details)
         lines = text.split("\n")
-        
         for line in lines:
-            # Regex patterns to extract key fields from the invoice
-            invoice_number = re.search(r'Invoice Number:\s*(\S+)', line)
-            invoice_date = re.search(r'Date:\s*(\S+)', line)
-            item_description = re.search(r'Item Description:\s*(.*)', line)
-            quantity = re.search(r'Quantity:\s*(\d+)', line)
-            unit_price = re.search(r'Unit Price:\s*\$([\d.]+)', line)
-            total = re.search(r'Total:\s*\$([\d.]+)', line)
-            
-            # If any field is found, add to the data list
-            if invoice_number or invoice_date or item_description or quantity or unit_price or total:
-                data.append({
-                    'Invoice Number': invoice_number.group(1) if invoice_number else '',
-                    'Date': invoice_date.group(1) if invoice_date else '',
-                    'Item Description': item_description.group(1) if item_description else '',
-                    'Quantity': quantity.group(1) if quantity else '',
-                    'Unit Price': unit_price.group(1) if unit_price else '',
-                    'Total': total.group(1) if total else '',
-                })
+            columns = line.split()  # You can split by space, tab, or use regex based on your invoice structure
+            if len(columns) > 1:  # Ensuring the row has more than one column
+                data.append(columns)
     
-    # Create DataFrame
+    # Create DataFrame (you may need to refine the structure depending on your invoices)
     df = pd.DataFrame(data)
-    
-    return df
 
-# Function to create an Excel file from DataFrame
-def create_excel_from_dataframe(df):
+    # Create an Excel file in memory
     output = BytesIO()
     with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
         df.to_excel(writer, index=False, sheet_name="Invoice_Data")
         writer.close()
 
     output.seek(0)
-    return output
+    return df, output
 
 # Streamlit app to upload PDF invoices and convert to Excel
 st.title("Invoice PDF to Excel Converter")
@@ -84,11 +68,8 @@ if uploaded_pdf is not None:
     
     st.success("Text extracted from invoice images.")
     
-    # Parse the extracted text and structure it into a DataFrame
-    df = parse_invoice_text(text_data)
-    
-    # Create an Excel file from the DataFrame
-    excel_file = create_excel_from_dataframe(df)
+    # Process the extracted text into Excel format
+    df, excel_file = create_excel_from_text(text_data)
     
     # Display the DataFrame as a table in the view
     st.dataframe(df)  # Display the extracted data as a table
