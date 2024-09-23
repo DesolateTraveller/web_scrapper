@@ -18,3 +18,4 @@ pillow
 PyMuPDF
 PyPDF2
 boto3
+pdf2image
