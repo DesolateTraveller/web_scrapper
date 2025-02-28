@@ -182,4 +182,7 @@ with col1:
 
                                     st.subheader("Page Summary",divider='blue')
                                     st.write(summary)
+                                    
+                                text_file_name = f"{title}_summary.txt"
+                                st.download_button(label="📥 **Download summary (.txt)**",data=summary,file_name=text_file_name,mime="text/plain",)    
 
