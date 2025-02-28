@@ -160,7 +160,7 @@ with col1:
             with col2:
                with st.container(border=True): 
         
-                    with st.spinner("Fetching webpage..."):
+                    with st.spinner("Fetching webpage & generating the summary..."):
                         html_content = fetch_webpage(url)
                         if html_content:
                             soup = parse_html(html_content)
@@ -175,12 +175,11 @@ with col1:
                                 with st.container(border=True): 
 
                                     st.subheader("Web View",divider='blue')
-                                    st.write(text[:5000])
+                                    st.write(text[:20000])
 
                             with col4:  
                                 with st.container(border=True): 
 
                                     st.subheader("Page Summary",divider='blue')
-                                    with st.spinner("Scraping the webpage & generating the summary.."):
-                                        st.write(summary)
+                                    st.write(summary)
 
