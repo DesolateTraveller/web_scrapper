@@ -20,7 +20,7 @@ from transformers import T5ForConditionalGeneration, T5Tokenizer
 #import custom_style()
 st.set_page_config(page_title="Web Scrapper | v0.1",
                    layout="wide",
-                   page_icon="💻",             
+                   page_icon="🌐",             
                    initial_sidebar_state="collapsed")
 #----------------------------------------
 st.markdown(
@@ -48,7 +48,6 @@ st.markdown(
     unsafe_allow_html=True
 )
 #----------------------------------------
-
 st.markdown(
     """
     <style>
@@ -78,7 +77,6 @@ st.markdown(
     </div>
     """,
     unsafe_allow_html=True)
-
 #---------------------------------------------------------------------------------------------------------------------------------
 ### Functions & Definitions
 #---------------------------------------------------------------------------------------------------------------------------------
@@ -145,7 +143,7 @@ st.markdown('<div class="centered-info"><span style="margin-left: 10px;">A light
 
 st.divider()
 
-col1, col2, col3, col4 = st.columns((0.2,0.25,0.3,0.25))
+col1, col2, col3, col4 = st.columns((0.2,0.2,0.3,0.3))
 with col1:
     with st.container(border=True):
         
