@@ -1,110 +1,187 @@
-import fitz
+#---------------------------------------------------------------------------------------------------------------------------------
+### Authenticator
+#---------------------------------------------------------------------------------------------------------------------------------
 import streamlit as st
-from datetime import datetime
+#---------------------------------------------------------------------------------------------------------------------------------
+### Import Libraries
+#---------------------------------------------------------------------------------------------------------------------------------
+import numpy as np
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+#----------------------------------------
+import requests
+from bs4 import BeautifulSoup
+from transformers import T5ForConditionalGeneration, T5Tokenizer
+#from gensim.summarization import summarize
+#---------------------------------------------------------------------------------------------------------------------------------
+### Title and description for your Streamlit app
+#---------------------------------------------------------------------------------------------------------------------------------
+#import custom_style()
+st.set_page_config(page_title="Web Scrapper | v0.1",
+                   layout="wide",
+                   page_icon="💻",             
+                   initial_sidebar_state="collapsed")
+#----------------------------------------
+st.markdown(
+    """
+    <style>
+    .title-large {
+        text-align: center;
+        font-size: 35px;
+        font-weight: bold;
+        background: linear-gradient(to left, red, orange, blue, indigo, violet);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+    .title-small {
+        text-align: center;
+        font-size: 20px;
+        background: linear-gradient(to left, red, orange, blue, indigo, violet);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+    </style>
+    <div class="title-large">Web Scapper </div>
+    <div class="title-small">Version : 0.1</div>
+    """,
+    unsafe_allow_html=True
+)
+#----------------------------------------
 
-# Helper function to count images in the PDF
-@st.cache_data(ttl="2h")
-def count_images_in_pdf(pdf_path):
-    pdf_document = fitz.open(pdf_path)
-    image_count = 0
-    for page_num in range(len(pdf_document)):
-        page = pdf_document.load_page(page_num)
-        image_list = page.get_images(full=True)
-        image_count += len(image_list)
-    pdf_document.close()
-    return image_count
+st.markdown(
+    """
+    <style>
+    .footer {
+        position: fixed;
+        left: 0;
+        bottom: 0;
+        width: 100%;
+        background-color: #F0F2F6;
+        text-align: center;
+        padding: 10px;
+        font-size: 14px;
+        color: #333;
+        z-index: 100;
+    }
+    .footer p {
+        margin: 0;
+    }
+    .footer .highlight {
+        font-weight: bold;
+        color: blue;
+    }
+    </style>
 
-# Function to detect if the PDF is image-based (contains images, P&ID symbols, or flowcharts/arrow diagrams)
+    <div class="footer">
+        <p>© 2025 | Created by : <span class="highlight">Avijit Chakraborty</span> | <a href="mailto:avijit.mba18@gmail.com"> 📩 </a></p> <span class="highlight">Thank you for visiting the app | Unauthorized uses or copying is strictly prohibited | For best view of the app, please zoom out the browser to 75%.</span>
+    </div>
+    """,
+    unsafe_allow_html=True)
+
+#---------------------------------------------------------------------------------------------------------------------------------
+### Functions & Definitions
+#---------------------------------------------------------------------------------------------------------------------------------
+
 @st.cache_data(ttl="2h")
-def detect_pdf_source(pdf_path):
-    pdf_document = fitz.open(pdf_path)
-    text_content = ""
-    is_pid_symbols = False
-    is_flowchart = False
-    is_image_based = False
-    non_image_based = False
+def fetch_webpage(url):
+    if not url:
+        return None
+    try:
+        response = requests.get(url)
+        response.raise_for_status()
+        return response.text
+    except requests.RequestException as e:
+        st.error(f"Error fetching the URL: {e}")
+        return None
+
+@st.cache_data(ttl="2h")
+def parse_html(html_content):
+    if not html_content:
+        return None
+    return BeautifulSoup(html_content, 'html.parser')
+
+@st.cache_data(ttl="2h")
+def extract_text(soup):
+    if soup is None:
+        return "No content extracted."
+    paragraphs = soup.find_all('p')
+    text = ' '.join([p.get_text() for p in paragraphs])
+    return text if text else "No text found."
+
+@st.cache_data(ttl="2h")
+def summarize_text(text):
+    if not text:
+        return "No content available to summarize."
+    model_name = "t5-large"
+    tokenizer = T5Tokenizer.from_pretrained(model_name)
+    model = T5ForConditionalGeneration.from_pretrained(model_name)
+    preprocessed_text = "summarize: " + text.strip().replace("\n", " ")
+    inputs = tokenizer.encode(preprocessed_text, return_tensors="pt", max_length=512, truncation=True)
+    summary_ids = model.generate(inputs, max_length=512, min_length=100, length_penalty=2.0, num_beams=4, early_stopping=True)
+    return tokenizer.decode(summary_ids[0], skip_special_tokens=True)
+#---------------------------------------------------------------------------------------------------------------------------------
+### Main app
+#---------------------------------------------------------------------------------------------------------------------------------
+st.markdown(
+            """
+            <style>
+                .centered-info {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                font-weight: bold;
+                font-size: 15px;
+                color: #007BFF; 
+                padding: 5px;
+                background-color: #E8F4FF; 
+                border-radius: 5px;
+                border: 1px solid #007BFF;
+                margin-top: 5px;
+                margin-bottom: 10px;
+                }
+            </style>
+            """,unsafe_allow_html=True,)
+st.markdown('<div class="centered-info"><span style="margin-left: 10px;">A lightweight streamlit app that helps user to extract the information from a webpage by uploading the links.</span></div>',unsafe_allow_html=True,)
+
+st.divider()
+
+col1, col2, col3, col4 = st.columns((0.2,0.25,0.3,0.25))
+with col1:
+    with st.container(border=True):
+        
+        url = st.text_input("**:blue[Enter the URL]**")
+        if st.button("**:blue[Scrape]**"):
+            st.divider()
+            if not url:
+                st.warning("Please enter a valid URL.")
+            else:
+                st.success("Webpage fetched successfully!")
     
-    # Metadata analysis (for Word, Excel, PowerPoint detection)
-    metadata = pdf_document.metadata
-    creator = metadata.get('creator', '').lower()
-    producer = metadata.get('producer', '').lower()
-
-    # Check metadata for non-image types
-    if 'word' in creator or 'microsoft word' in producer:
-        non_image_based = True
-    elif 'excel' in creator or 'microsoft excel' in producer:
-        non_image_based = True
-    elif 'powerpoint' in creator or 'microsoft powerpoint' in producer:
-        non_image_based = True
-
-    # Iterate through the pages of the PDF
-    for page_num in range(len(pdf_document)):
-        page = pdf_document.load_page(page_num)
-
-        # Get text content from the page
-        text_content += page.get_text("text")
+            with col2:
+               with st.container(border=True): 
         
-        # Detect tables (useful for Excel PDFs)
-        table_rects = page.search_for("Table")
-        if table_rects or "Total" in text_content or "Amount" in text_content:
-            non_image_based = True
+                    with st.spinner("Fetching webpage..."):
+                        html_content = fetch_webpage(url)
+                        if html_content:
+                            soup = parse_html(html_content)
+                            text = extract_text(soup)
+                            summary = summarize_text(text)
+                            
+                            st.subheader("Page Title",divider='blue')
+                            title = soup.title.string if soup.title else "No title found"
+                            st.write(title)
         
-        # Detect flowcharts or arrow diagrams (searching for arrow symbols)
-        arrow_rects = page.search_for("→")  # Search for arrow symbols as a proxy for flowcharts
-        if arrow_rects:
-            is_flowchart = True
+                            with col3:
+                                with st.container(border=True): 
 
-        # Detect common P&ID symbols (simple search for basic symbols used in P&ID)
-        pid_symbols = page.search_for("⌀") or page.search_for("↔")  # P&ID symbols such as pipe diameters or arrows
-        if pid_symbols:
-            is_pid_symbols = True
-        
-        # Count images
-        image_list = page.get_images(full=True)
-        if len(image_list) > 0:
-            is_image_based = True
+                                    st.subheader("Web View",divider='blue')
+                                    st.write(text[:5000])
 
-    pdf_document.close()
+                            with col4:  
+                                with st.container(border=True): 
 
-    # Determine the final source type
-    if is_image_based or is_flowchart or is_pid_symbols:
-        return "Image"
-    elif text_content.strip() or non_image_based:
-        return "Non-Image"
-    else:
-        return "Unknown"
+                                    st.subheader("Page Summary",divider='blue')
+                                    with st.spinner("Scraping the webpage & generating the summary.."):
+                                        st.write(summary)
 
-# Format the creation date extracted from metadata
-@st.cache_data(ttl="2h")
-def format_creation_date(creation_date_str):
-    if creation_date_str.startswith('D:'):
-        try:
-            date_obj = datetime.strptime(creation_date_str[2:16], "%Y%m%d%H%M%S")
-            return date_obj.strftime("%Y-%m-%d %H:%M:%S")
-        except ValueError:
-            return "Invalid Date Format"
-    return "Unknown"
-
-# Analyze multiple PDFs and return the results as a list of dictionaries
-@st.cache_data(ttl="2h")
-def analyze_pdfs(pdf_paths_with_names):
-    results = []
-    for pdf_path, pdf_name in pdf_paths_with_names:
-        pdf_document = fitz.open(pdf_path)
-        source_type = detect_pdf_source(pdf_path)
-        image_count = count_images_in_pdf(pdf_path)
-        page_count = pdf_document.page_count 
-
-        metadata = pdf_document.metadata
-        creation_date_raw = metadata.get('creationDate', 'Unknown')  # Raw creation date from metadata
-        creation_date = format_creation_date(creation_date_raw)
-
-        results.append({
-            "PDF File Name": pdf_name,  
-            "Source Type": source_type,
-            "Number of Images": image_count,
-            "Number of Pages": page_count,
-            "Creation Date": creation_date
-        })
-        pdf_document.close()
-    return results
