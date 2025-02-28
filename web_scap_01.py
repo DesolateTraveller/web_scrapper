@@ -95,13 +95,12 @@ def fetch_webpage(url):
         st.error(f"Error fetching the URL: {e}")
         return None
 
-@st.cache_data(ttl="2h")
+
 def parse_html(html_content):
     if not html_content:
         return None
     return BeautifulSoup(html_content, 'html.parser')
 
-@st.cache_data(ttl="2h")
 def extract_text(soup):
     if soup is None:
         return "No content extracted."
