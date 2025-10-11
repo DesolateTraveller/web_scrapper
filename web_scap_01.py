@@ -43,7 +43,7 @@ st.markdown(
     }
     </style>
     <div class="title-large">Web Scapper </div>
-    <div class="title-small">Version : 0.1</div>
+    <div class="title-small">v0.1</div>
     """,
     unsafe_allow_html=True
 )
@@ -183,4 +183,5 @@ with col1:
                                     
                                 text_file_name = f"{title}_summary.txt"
                                 st.download_button(label="📥 **Download summary (.txt)**",data=summary,file_name=text_file_name,mime="text/plain",)    
+
 
