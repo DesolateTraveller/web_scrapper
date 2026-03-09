@@ -41,12 +41,26 @@ st.markdown(
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
     }
+    .version-badge {
+        text-align: center;
+        display: inline-block;
+        background: linear-gradient(120deg, #0056b3, #0d4a96);
+        color: white;
+        padding: 2px 12px;
+        border-radius: 20px;
+        font-size: 1.15rem;
+        margin-top: 8px;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    }
     </style>
-    <div class="title-large">Web Scapper </div>
-    <div class="title-small">v0.1</div>
+    <div style="text-align: center;">
+        <div class="title-large">Web Scapper</div>
+        <div class="version-badge"> v0.1 </div>
+    </div>
     """,
-    unsafe_allow_html=True
-)
+    unsafe_allow_html=True)
 #----------------------------------------
 st.markdown(
     """
@@ -73,7 +87,86 @@ st.markdown(
     </style>
 
     <div class="footer">
-        <p>© 2025 | Created by : <span class="highlight">Avijit Chakraborty</span> | <a href="mailto:avijit.mba18@gmail.com"> 📩 </a></p> <span class="highlight">Thank you for visiting the app | Unauthorized uses or copying is strictly prohibited | For best view of the app, please zoom out the browser to 75%.</span>
+        <p>© 2026 | Created by : <span class="highlight">Avijit Chakraborty</span> <a href="mailto:avijit.mba18@gmail.com"> 📩 </a> | <span class="highlight">Thank you for visiting the app | Unauthorized uses or copying is strictly prohibited | For best view of the app, please zoom out the browser to 75%.</span> </p>
+    </div>
+    """,
+    unsafe_allow_html=True)
+#---------------------------------------------------------------------------------------------------------------------------------
+### Functions & Definitions
+#---------------------------------------------------------------------------------------------------------------------------------#---------------------------------------------------------------------------------------------------------------------------------
+### Title and description for your Streamlit app
+#---------------------------------------------------------------------------------------------------------------------------------
+#import custom_style()
+st.set_page_config(page_title="Web Scrapper | v0.1",
+                   layout="wide",
+                   page_icon="🌐",             
+                   initial_sidebar_state="collapsed")
+#----------------------------------------
+st.markdown(
+    """
+    <style>
+    .title-large {
+        text-align: center;
+        font-size: 35px;
+        font-weight: bold;
+        background: linear-gradient(to left, red, orange, blue, indigo, violet);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+    .title-small {
+        text-align: center;
+        font-size: 20px;
+        background: linear-gradient(to left, red, orange, blue, indigo, violet);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+    .version-badge {
+        text-align: center;
+        display: inline-block;
+        background: linear-gradient(120deg, #0056b3, #0d4a96);
+        color: white;
+        padding: 2px 12px;
+        border-radius: 20px;
+        font-size: 1.15rem;
+        margin-top: 8px;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    }
+    </style>
+    <div style="text-align: center;">
+        <div class="title-large">Web Scapper</div>
+        <div class="version-badge"> v0.1 </div>
+    </div>
+    """,
+    unsafe_allow_html=True)
+#----------------------------------------
+st.markdown(
+    """
+    <style>
+    .footer {
+        position: fixed;
+        left: 0;
+        bottom: 0;
+        width: 100%;
+        background-color: #F0F2F6;
+        text-align: center;
+        padding: 10px;
+        font-size: 14px;
+        color: #333;
+        z-index: 100;
+    }
+    .footer p {
+        margin: 0;
+    }
+    .footer .highlight {
+        font-weight: bold;
+        color: blue;
+    }
+    </style>
+
+    <div class="footer">
+        <p>© 2026 | Created by : <span class="highlight">Avijit Chakraborty</span> <a href="mailto:avijit.mba18@gmail.com"> 📩 </a> | <span class="highlight">Thank you for visiting the app | Unauthorized uses or copying is strictly prohibited | For best view of the app, please zoom out the browser to 75%.</span> </p>
     </div>
     """,
     unsafe_allow_html=True)
@@ -81,7 +174,6 @@ st.markdown(
 ### Functions & Definitions
 #---------------------------------------------------------------------------------------------------------------------------------
 
-@st.cache_data(ttl="2h")
 def fetch_webpage(url):
     if not url:
         return None
@@ -92,7 +184,6 @@ def fetch_webpage(url):
     except requests.RequestException as e:
         st.error(f"Error fetching the URL: {e}")
         return None
-
 
 def parse_html(html_content):
     if not html_content:
@@ -117,6 +208,7 @@ def summarize_text(text):
     inputs = tokenizer.encode(preprocessed_text, return_tensors="pt", max_length=512, truncation=True)
     summary_ids = model.generate(inputs, max_length=512, min_length=100, length_penalty=2.0, num_beams=4, early_stopping=True)
     return tokenizer.decode(summary_ids[0], skip_special_tokens=True)
+
 #---------------------------------------------------------------------------------------------------------------------------------
 ### Main app
 #---------------------------------------------------------------------------------------------------------------------------------
@@ -141,7 +233,7 @@ st.markdown(
             """,unsafe_allow_html=True,)
 st.markdown('<div class="centered-info"><span style="margin-left: 10px;">A lightweight streamlit app that helps user to extract the information from a webpage by uploading the links.</span></div>',unsafe_allow_html=True,)
 
-st.divider()
+st.write("")
 
 col1, col2, col3, col4 = st.columns((0.2,0.2,0.3,0.3))
 with col1:
@@ -183,5 +275,4 @@ with col1:
                                     
                                 text_file_name = f"{title}_summary.txt"
                                 st.download_button(label="📥 **Download summary (.txt)**",data=summary,file_name=text_file_name,mime="text/plain",)    
-
 
